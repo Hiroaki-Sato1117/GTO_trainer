@@ -134,8 +134,8 @@
         /* メインエリア */
         .main-area {
             display: grid;
-            grid-template-rows: 1fr 120px 80px;
-            overflow: hidden;
+            grid-template-rows: 1fr 100px 80px;
+            overflow: visible;
         }
 
         /* テーブルエリア */
@@ -144,13 +144,14 @@
             display: flex;
             align-items: center;
             justify-content: center;
-            padding: 20px;
+            padding: 30px 20px 50px 20px;
+            overflow: visible;
         }
 
         .poker-table {
             position: relative;
             width: 650px;
-            height: 300px;
+            height: 320px;
         }
 
         .table-felt {
@@ -166,7 +167,7 @@
             box-shadow: 0 0 0 3px #8b6914, 0 0 30px rgba(0,0,0,0.5), inset 0 0 50px rgba(0,0,0,0.3);
         }
 
-        /* プレイヤー配置 */
+        /* プレイヤー配置 - 相対位置（自分を基準に右回り） */
         .player-seat {
             position: absolute;
             display: flex;
@@ -176,11 +177,16 @@
             transition: all 0.3s ease;
         }
 
-        .seat-top { top: -55px; left: 50%; transform: translateX(-50%); }
-        .seat-left-top { top: 15px; left: -35px; }
-        .seat-left-bottom { bottom: 15px; left: -35px; }
-        .seat-right-bottom { bottom: 15px; right: -35px; }
-        .seat-right-top { top: 15px; right: -35px; }
+        /* 相対位置1: 左下 (自分の左隣) */
+        .seat-rel-1 { bottom: 15px; left: -35px; }
+        /* 相対位置2: 左上 */
+        .seat-rel-2 { top: 15px; left: -35px; }
+        /* 相対位置3: 上（正面） */
+        .seat-rel-3 { top: -55px; left: 50%; transform: translateX(-50%); }
+        /* 相対位置4: 右上 */
+        .seat-rel-4 { top: 15px; right: -35px; }
+        /* 相対位置5: 右下 (自分の右隣) */
+        .seat-rel-5 { bottom: 15px; right: -35px; }
 
         .player-seat.active .player-box {
             box-shadow: 0 0 15px #fbbf24, 0 0 30px rgba(251,191,36,0.4);
@@ -287,13 +293,15 @@
 
         /* 自分のエリア */
         .hero-area {
-            background: linear-gradient(to bottom, rgba(30,58,95,0.8), rgba(13,31,60,0.8));
+            background: linear-gradient(to bottom, rgba(30,58,95,0.9), rgba(13,31,60,0.9));
             border-top: 2px solid #3b82f6;
             display: flex;
             justify-content: center;
             align-items: center;
             gap: 24px;
-            padding: 12px;
+            padding: 8px 12px;
+            position: relative;
+            z-index: 10;
         }
 
         .hero-cards {
@@ -507,19 +515,25 @@
             flex-shrink: 0;
         }
 
-        /* フィードバックモーダル */
+        /* フィードバックモーダル - GPUアクセラレーション対応 */
         .feedback-overlay {
             position: fixed;
-            top: 0;
-            left: 0;
-            right: 0;
-            bottom: 0;
-            background: rgba(0,0,0,0.7);
+            inset: 0;
+            background: rgba(0,0,0,0);
             display: flex;
             align-items: center;
             justify-content: center;
             z-index: 100;
-            animation: fadeIn 0.3s ease;
+            opacity: 0;
+            visibility: hidden;
+            transition: opacity 0.25s ease, visibility 0.25s ease, background 0.25s ease;
+            will-change: opacity, visibility;
+        }
+
+        .feedback-overlay.show {
+            opacity: 1;
+            visibility: visible;
+            background: rgba(0,0,0,0.7);
         }
 
         .feedback-modal {
@@ -529,6 +543,16 @@
             text-align: center;
             min-width: 400px;
             box-shadow: 0 20px 50px rgba(0,0,0,0.5);
+            transform: scale(0.85) translateZ(0);
+            opacity: 0;
+            transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1), opacity 0.25s ease;
+            will-change: transform, opacity;
+            backface-visibility: hidden;
+        }
+
+        .feedback-overlay.show .feedback-modal {
+            transform: scale(1) translateZ(0);
+            opacity: 1;
         }
 
         .feedback-icon {
@@ -977,11 +1001,9 @@
             );
         }
 
-        // フィードバックモーダル
-        function FeedbackModal({ feedback, onClose }) {
-            if (!feedback) return null;
-
-            const { result, userAction, gtoRecommendation, message } = feedback;
+        // フィードバックモーダル - CSSトランジション対応
+        function FeedbackModal({ feedback, onNextHand }) {
+            const { result, userAction, gtoRecommendation, message } = feedback || {};
 
             const resultConfig = {
                 CORRECT: { icon: '✅', title: 'CORRECT', class: 'correct' },
@@ -990,23 +1012,24 @@
             };
 
             const config = resultConfig[result] || resultConfig.ERROR;
+            const isOpen = !!feedback;
 
             return (
-                <div className="feedback-overlay" onClick={onClose}>
+                <div className={`feedback-overlay ${isOpen ? 'show' : ''}`} onClick={onNextHand}>
                     <div className="feedback-modal" onClick={e => e.stopPropagation()}>
                         <div className="feedback-icon">{config.icon}</div>
                         <div className={`feedback-title ${config.class}`}>{config.title}</div>
                         <div className="feedback-details">
-                            あなたの選択: {userAction}
+                            あなたの選択: {userAction || '-'}
                         </div>
                         <div className="feedback-details">
                             GTO推奨: Fold {gtoRecommendation?.fold_percentage || 0}% /
                             Call {gtoRecommendation?.call_percentage || 0}% /
                             Raise {gtoRecommendation?.raise_percentage || 0}%
                         </div>
-                        <div className="feedback-message">{message}</div>
-                        <button className="feedback-btn" onClick={onClose}>
-                            次のアクションへ
+                        <div className="feedback-message">{message || ''}</div>
+                        <button className="feedback-btn" onClick={onNextHand}>
+                            次のハンドへ
                         </button>
                     </div>
                 </div>
@@ -1064,6 +1087,33 @@
                 setFeedback(null);
                 try {
                     const res = await fetch(`${API_BASE}/game/new`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' }
+                    });
+                    const data = await res.json();
+                    setGame(data.game);
+                    setBetAmount(data.game.blinds.bb * 3);
+                    setIsLoading(false);
+                    if (data.pendingActionsCount > 0) {
+                        await processAIActions();
+                    } else {
+                        const gtoRes = await fetch(`${API_BASE}/game/gto-recommendation`);
+                        const gtoData = await gtoRes.json();
+                        setGtoRecommendation(gtoData.recommendation);
+                    }
+                } catch (err) {
+                    console.error(err);
+                    setIsLoading(false);
+                }
+            }, []);
+
+            // 次のハンドへ（BTNローテーション）
+            const nextHand = useCallback(async () => {
+                setIsLoading(true);
+                setGtoRecommendation(null);
+                setFeedback(null);
+                try {
+                    const res = await fetch(`${API_BASE}/game/next-hand`, {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' }
                     });
@@ -1169,7 +1219,14 @@
             const minRaise = game ? Math.max((game.currentBet || 0) * 2, (game.blinds?.bb || 100) * 2) : 200;
             const pot = game?.pot || 0;
 
-            const seatClasses = ['seat-top', 'seat-left-top', 'seat-left-bottom', 'seat-right-bottom', 'seat-right-top'];
+            // 相対位置を計算（自分の席を基準に右回りで配置）
+            const getRelativeSeatClass = (playerSeatIndex) => {
+                if (!game) return 'seat-rel-3';
+                const heroSeatIndex = game.heroSeatIndex;
+                // 自分からの相対位置を計算（1〜5、0は自分なのでスキップ）
+                const relativeIndex = (playerSeatIndex - heroSeatIndex + 6) % 6;
+                return `seat-rel-${relativeIndex}`;
+            };
 
             return (
                 <div className="game-container">
@@ -1178,6 +1235,9 @@
                         <div className="header-left">
                             <span className="text-xl">🃏</span>
                             <h1 className="text-white font-bold">GTO Poker Trainer</h1>
+                            <span className="text-yellow-400 text-sm font-bold">
+                                Hand #{game?.handNumber || 1}
+                            </span>
                             <span className="text-gray-400 text-sm">
                                 SB/BB: {game?.blinds?.sb || 50}/{game?.blinds?.bb || 100}
                             </span>
@@ -1240,12 +1300,12 @@
                                                 <div className="text-gray-300" style={{fontSize: '10px'}}>{game.currentStreet?.toUpperCase()}</div>
                                             </div>
                                         </div>
-                                        {otherPlayers.slice(0, 5).map((player, i) => (
+                                        {otherPlayers.map((player) => (
                                             <PlayerSeat
                                                 key={player.id}
                                                 player={player}
                                                 isActive={game.players.indexOf(player) === game.currentPlayerIndex}
-                                                seatClass={seatClasses[i]}
+                                                seatClass={getRelativeSeatClass(player.seatIndex)}
                                             />
                                         ))}
                                     </div>
@@ -1325,10 +1385,10 @@
                                             <div>
                                                 <span className="text-yellow-400 font-bold text-lg">ハンド終了！</span>
                                                 <button
-                                                    onClick={startNewGame}
+                                                    onClick={nextHand}
                                                     className="ml-4 bg-blue-600 text-white px-4 py-2 rounded font-medium hover:bg-blue-700"
                                                 >
-                                                    次のハンド
+                                                    次のハンドへ
                                                 </button>
                                             </div>
                                         ) : (
@@ -1351,7 +1411,7 @@
                     {/* フィードバックモーダル */}
                     <FeedbackModal
                         feedback={feedback}
-                        onClose={() => setFeedback(null)}
+                        onNextHand={nextHand}
                     />
                 </div>
             );

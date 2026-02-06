@@ -1,59 +1,730 @@
-// GTO Poker Trainer - サーバー v2
+// GTO Poker Trainer - サーバー v3 (プリフロップ専用)
 import http from 'http';
 
 let gameState = null;
 
-// ハンドランク（プリフロップ）- パーセンタイル形式
-const HAND_RANKINGS = {
-  // プレミアムハンド (トップ3%)
-  'AA': 1, 'KK': 2, 'QQ': 3, 'AKs': 4, 'JJ': 5, 'AKo': 6,
-  // 強いハンド (トップ10%)
-  'TT': 7, 'AQs': 8, 'AJs': 9, '99': 10, 'AQo': 11, 'KQs': 12,
-  '88': 13, 'ATs': 14, 'KJs': 15, 'AJo': 16, 'KQo': 17, '77': 18,
-  // ミディアムハンド (トップ20%)
-  'A9s': 19, 'KTs': 20, 'ATo': 21, 'QJs': 22, '66': 23, 'K9s': 24,
-  'QTs': 25, 'A8s': 26, 'JTs': 27, '55': 28, 'KJo': 29, 'Q9s': 30,
-  // (トップ30%)
-  'A7s': 31, 'A5s': 32, 'A6s': 33, 'A4s': 34, 'T9s': 35, 'J9s': 36,
-  'QJo': 37, '44': 38, 'A3s': 39, 'K8s': 40, 'A2s': 41, 'KTo': 42,
-  // (トップ40%)
-  'Q8s': 43, '98s': 44, 'K7s': 45, 'J8s': 46, 'QTo': 47, '33': 48,
-  'T8s': 49, 'K6s': 50, 'JTo': 51, '87s': 52, 'K5s': 53, '97s': 54,
-  // (トップ50%)
-  'K4s': 55, '22': 56, 'K3s': 57, '76s': 58, 'Q7s': 59, 'K2s': 60,
-  'Q6s': 61, '86s': 62, 'T7s': 63, 'J7s': 64, 'Q5s': 65, '65s': 66,
+// ============================================
+// GTOレンジデータ (ハードコード)
+// ============================================
+
+// RFIレンジ: 各ポジションからのオープンレンジ
+// 値: { fold, call, raise } の各パーセンテージ
+const RFI_RANGES = {
+  UTG: {
+    // ペア
+    'AA': { fold: 0, call: 0, raise: 100 },
+    'KK': { fold: 0, call: 0, raise: 100 },
+    'QQ': { fold: 0, call: 0, raise: 100 },
+    'JJ': { fold: 0, call: 0, raise: 100 },
+    'TT': { fold: 0, call: 0, raise: 100 },
+    '99': { fold: 0, call: 0, raise: 100 },
+    '88': { fold: 0, call: 0, raise: 100 },
+    '77': { fold: 20, call: 0, raise: 80 },
+    '66': { fold: 50, call: 0, raise: 50 },
+    '55': { fold: 70, call: 0, raise: 30 },
+    '44': { fold: 100, call: 0, raise: 0 },
+    '33': { fold: 100, call: 0, raise: 0 },
+    '22': { fold: 100, call: 0, raise: 0 },
+    // Ax suited
+    'AKs': { fold: 0, call: 0, raise: 100 },
+    'AQs': { fold: 0, call: 0, raise: 100 },
+    'AJs': { fold: 0, call: 0, raise: 100 },
+    'ATs': { fold: 0, call: 0, raise: 100 },
+    'A9s': { fold: 50, call: 0, raise: 50 },
+    'A8s': { fold: 70, call: 0, raise: 30 },
+    'A7s': { fold: 100, call: 0, raise: 0 },
+    'A6s': { fold: 100, call: 0, raise: 0 },
+    'A5s': { fold: 50, call: 0, raise: 50 },
+    'A4s': { fold: 70, call: 0, raise: 30 },
+    'A3s': { fold: 100, call: 0, raise: 0 },
+    'A2s': { fold: 100, call: 0, raise: 0 },
+    // Ax offsuit
+    'AKo': { fold: 0, call: 0, raise: 100 },
+    'AQo': { fold: 0, call: 0, raise: 100 },
+    'AJo': { fold: 20, call: 0, raise: 80 },
+    'ATo': { fold: 60, call: 0, raise: 40 },
+    // Kx suited
+    'KQs': { fold: 0, call: 0, raise: 100 },
+    'KJs': { fold: 0, call: 0, raise: 100 },
+    'KTs': { fold: 20, call: 0, raise: 80 },
+    'K9s': { fold: 100, call: 0, raise: 0 },
+    // Kx offsuit
+    'KQo': { fold: 30, call: 0, raise: 70 },
+    'KJo': { fold: 100, call: 0, raise: 0 },
+    // Broadway suited
+    'QJs': { fold: 20, call: 0, raise: 80 },
+    'QTs': { fold: 50, call: 0, raise: 50 },
+    'JTs': { fold: 50, call: 0, raise: 50 },
+  },
+
+  HJ: {
+    'AA': { fold: 0, call: 0, raise: 100 },
+    'KK': { fold: 0, call: 0, raise: 100 },
+    'QQ': { fold: 0, call: 0, raise: 100 },
+    'JJ': { fold: 0, call: 0, raise: 100 },
+    'TT': { fold: 0, call: 0, raise: 100 },
+    '99': { fold: 0, call: 0, raise: 100 },
+    '88': { fold: 0, call: 0, raise: 100 },
+    '77': { fold: 0, call: 0, raise: 100 },
+    '66': { fold: 30, call: 0, raise: 70 },
+    '55': { fold: 50, call: 0, raise: 50 },
+    '44': { fold: 80, call: 0, raise: 20 },
+    '33': { fold: 100, call: 0, raise: 0 },
+    '22': { fold: 100, call: 0, raise: 0 },
+    'AKs': { fold: 0, call: 0, raise: 100 },
+    'AQs': { fold: 0, call: 0, raise: 100 },
+    'AJs': { fold: 0, call: 0, raise: 100 },
+    'ATs': { fold: 0, call: 0, raise: 100 },
+    'A9s': { fold: 20, call: 0, raise: 80 },
+    'A8s': { fold: 40, call: 0, raise: 60 },
+    'A7s': { fold: 70, call: 0, raise: 30 },
+    'A6s': { fold: 80, call: 0, raise: 20 },
+    'A5s': { fold: 30, call: 0, raise: 70 },
+    'A4s': { fold: 50, call: 0, raise: 50 },
+    'A3s': { fold: 70, call: 0, raise: 30 },
+    'A2s': { fold: 80, call: 0, raise: 20 },
+    'AKo': { fold: 0, call: 0, raise: 100 },
+    'AQo': { fold: 0, call: 0, raise: 100 },
+    'AJo': { fold: 0, call: 0, raise: 100 },
+    'ATo': { fold: 40, call: 0, raise: 60 },
+    'KQs': { fold: 0, call: 0, raise: 100 },
+    'KJs': { fold: 0, call: 0, raise: 100 },
+    'KTs': { fold: 0, call: 0, raise: 100 },
+    'K9s': { fold: 60, call: 0, raise: 40 },
+    'KQo': { fold: 10, call: 0, raise: 90 },
+    'KJo': { fold: 50, call: 0, raise: 50 },
+    'QJs': { fold: 0, call: 0, raise: 100 },
+    'QTs': { fold: 30, call: 0, raise: 70 },
+    'JTs': { fold: 30, call: 0, raise: 70 },
+    'T9s': { fold: 60, call: 0, raise: 40 },
+  },
+
+  CO: {
+    'AA': { fold: 0, call: 0, raise: 100 },
+    'KK': { fold: 0, call: 0, raise: 100 },
+    'QQ': { fold: 0, call: 0, raise: 100 },
+    'JJ': { fold: 0, call: 0, raise: 100 },
+    'TT': { fold: 0, call: 0, raise: 100 },
+    '99': { fold: 0, call: 0, raise: 100 },
+    '88': { fold: 0, call: 0, raise: 100 },
+    '77': { fold: 0, call: 0, raise: 100 },
+    '66': { fold: 0, call: 0, raise: 100 },
+    '55': { fold: 20, call: 0, raise: 80 },
+    '44': { fold: 40, call: 0, raise: 60 },
+    '33': { fold: 60, call: 0, raise: 40 },
+    '22': { fold: 70, call: 0, raise: 30 },
+    'AKs': { fold: 0, call: 0, raise: 100 },
+    'AQs': { fold: 0, call: 0, raise: 100 },
+    'AJs': { fold: 0, call: 0, raise: 100 },
+    'ATs': { fold: 0, call: 0, raise: 100 },
+    'A9s': { fold: 0, call: 0, raise: 100 },
+    'A8s': { fold: 0, call: 0, raise: 100 },
+    'A7s': { fold: 20, call: 0, raise: 80 },
+    'A6s': { fold: 30, call: 0, raise: 70 },
+    'A5s': { fold: 0, call: 0, raise: 100 },
+    'A4s': { fold: 10, call: 0, raise: 90 },
+    'A3s': { fold: 30, call: 0, raise: 70 },
+    'A2s': { fold: 40, call: 0, raise: 60 },
+    'AKo': { fold: 0, call: 0, raise: 100 },
+    'AQo': { fold: 0, call: 0, raise: 100 },
+    'AJo': { fold: 0, call: 0, raise: 100 },
+    'ATo': { fold: 0, call: 0, raise: 100 },
+    'A9o': { fold: 50, call: 0, raise: 50 },
+    'A8o': { fold: 70, call: 0, raise: 30 },
+    'KQs': { fold: 0, call: 0, raise: 100 },
+    'KJs': { fold: 0, call: 0, raise: 100 },
+    'KTs': { fold: 0, call: 0, raise: 100 },
+    'K9s': { fold: 20, call: 0, raise: 80 },
+    'K8s': { fold: 50, call: 0, raise: 50 },
+    'K7s': { fold: 70, call: 0, raise: 30 },
+    'KQo': { fold: 0, call: 0, raise: 100 },
+    'KJo': { fold: 20, call: 0, raise: 80 },
+    'KTo': { fold: 50, call: 0, raise: 50 },
+    'QJs': { fold: 0, call: 0, raise: 100 },
+    'QTs': { fold: 0, call: 0, raise: 100 },
+    'Q9s': { fold: 40, call: 0, raise: 60 },
+    'QJo': { fold: 30, call: 0, raise: 70 },
+    'JTs': { fold: 0, call: 0, raise: 100 },
+    'J9s': { fold: 40, call: 0, raise: 60 },
+    'T9s': { fold: 20, call: 0, raise: 80 },
+    '98s': { fold: 40, call: 0, raise: 60 },
+    '87s': { fold: 50, call: 0, raise: 50 },
+    '76s': { fold: 60, call: 0, raise: 40 },
+  },
+
+  BTN: {
+    'AA': { fold: 0, call: 0, raise: 100 },
+    'KK': { fold: 0, call: 0, raise: 100 },
+    'QQ': { fold: 0, call: 0, raise: 100 },
+    'JJ': { fold: 0, call: 0, raise: 100 },
+    'TT': { fold: 0, call: 0, raise: 100 },
+    '99': { fold: 0, call: 0, raise: 100 },
+    '88': { fold: 0, call: 0, raise: 100 },
+    '77': { fold: 0, call: 0, raise: 100 },
+    '66': { fold: 0, call: 0, raise: 100 },
+    '55': { fold: 0, call: 0, raise: 100 },
+    '44': { fold: 0, call: 0, raise: 100 },
+    '33': { fold: 20, call: 0, raise: 80 },
+    '22': { fold: 30, call: 0, raise: 70 },
+    'AKs': { fold: 0, call: 0, raise: 100 },
+    'AQs': { fold: 0, call: 0, raise: 100 },
+    'AJs': { fold: 0, call: 0, raise: 100 },
+    'ATs': { fold: 0, call: 0, raise: 100 },
+    'A9s': { fold: 0, call: 0, raise: 100 },
+    'A8s': { fold: 0, call: 0, raise: 100 },
+    'A7s': { fold: 0, call: 0, raise: 100 },
+    'A6s': { fold: 0, call: 0, raise: 100 },
+    'A5s': { fold: 0, call: 0, raise: 100 },
+    'A4s': { fold: 0, call: 0, raise: 100 },
+    'A3s': { fold: 0, call: 0, raise: 100 },
+    'A2s': { fold: 0, call: 0, raise: 100 },
+    'AKo': { fold: 0, call: 0, raise: 100 },
+    'AQo': { fold: 0, call: 0, raise: 100 },
+    'AJo': { fold: 0, call: 0, raise: 100 },
+    'ATo': { fold: 0, call: 0, raise: 100 },
+    'A9o': { fold: 0, call: 0, raise: 100 },
+    'A8o': { fold: 20, call: 0, raise: 80 },
+    'A7o': { fold: 30, call: 0, raise: 70 },
+    'A6o': { fold: 40, call: 0, raise: 60 },
+    'A5o': { fold: 30, call: 0, raise: 70 },
+    'A4o': { fold: 40, call: 0, raise: 60 },
+    'A3o': { fold: 50, call: 0, raise: 50 },
+    'A2o': { fold: 60, call: 0, raise: 40 },
+    'KQs': { fold: 0, call: 0, raise: 100 },
+    'KJs': { fold: 0, call: 0, raise: 100 },
+    'KTs': { fold: 0, call: 0, raise: 100 },
+    'K9s': { fold: 0, call: 0, raise: 100 },
+    'K8s': { fold: 0, call: 0, raise: 100 },
+    'K7s': { fold: 10, call: 0, raise: 90 },
+    'K6s': { fold: 20, call: 0, raise: 80 },
+    'K5s': { fold: 30, call: 0, raise: 70 },
+    'K4s': { fold: 40, call: 0, raise: 60 },
+    'K3s': { fold: 50, call: 0, raise: 50 },
+    'K2s': { fold: 60, call: 0, raise: 40 },
+    'KQo': { fold: 0, call: 0, raise: 100 },
+    'KJo': { fold: 0, call: 0, raise: 100 },
+    'KTo': { fold: 0, call: 0, raise: 100 },
+    'K9o': { fold: 30, call: 0, raise: 70 },
+    'K8o': { fold: 50, call: 0, raise: 50 },
+    'K7o': { fold: 70, call: 0, raise: 30 },
+    'QJs': { fold: 0, call: 0, raise: 100 },
+    'QTs': { fold: 0, call: 0, raise: 100 },
+    'Q9s': { fold: 0, call: 0, raise: 100 },
+    'Q8s': { fold: 20, call: 0, raise: 80 },
+    'Q7s': { fold: 40, call: 0, raise: 60 },
+    'Q6s': { fold: 50, call: 0, raise: 50 },
+    'Q5s': { fold: 60, call: 0, raise: 40 },
+    'QJo': { fold: 0, call: 0, raise: 100 },
+    'QTo': { fold: 10, call: 0, raise: 90 },
+    'Q9o': { fold: 50, call: 0, raise: 50 },
+    'JTs': { fold: 0, call: 0, raise: 100 },
+    'J9s': { fold: 0, call: 0, raise: 100 },
+    'J8s': { fold: 20, call: 0, raise: 80 },
+    'J7s': { fold: 50, call: 0, raise: 50 },
+    'JTo': { fold: 10, call: 0, raise: 90 },
+    'J9o': { fold: 60, call: 0, raise: 40 },
+    'T9s': { fold: 0, call: 0, raise: 100 },
+    'T8s': { fold: 10, call: 0, raise: 90 },
+    'T7s': { fold: 40, call: 0, raise: 60 },
+    'T9o': { fold: 40, call: 0, raise: 60 },
+    '98s': { fold: 0, call: 0, raise: 100 },
+    '97s': { fold: 20, call: 0, raise: 80 },
+    '98o': { fold: 60, call: 0, raise: 40 },
+    '87s': { fold: 0, call: 0, raise: 100 },
+    '86s': { fold: 30, call: 0, raise: 70 },
+    '76s': { fold: 10, call: 0, raise: 90 },
+    '75s': { fold: 40, call: 0, raise: 60 },
+    '65s': { fold: 20, call: 0, raise: 80 },
+    '54s': { fold: 30, call: 0, raise: 70 },
+  },
+
+  SB: {
+    'AA': { fold: 0, call: 0, raise: 100 },
+    'KK': { fold: 0, call: 0, raise: 100 },
+    'QQ': { fold: 0, call: 0, raise: 100 },
+    'JJ': { fold: 0, call: 0, raise: 100 },
+    'TT': { fold: 0, call: 0, raise: 100 },
+    '99': { fold: 0, call: 0, raise: 100 },
+    '88': { fold: 0, call: 0, raise: 100 },
+    '77': { fold: 0, call: 0, raise: 100 },
+    '66': { fold: 0, call: 0, raise: 100 },
+    '55': { fold: 10, call: 0, raise: 90 },
+    '44': { fold: 20, call: 0, raise: 80 },
+    '33': { fold: 30, call: 0, raise: 70 },
+    '22': { fold: 40, call: 0, raise: 60 },
+    'AKs': { fold: 0, call: 0, raise: 100 },
+    'AQs': { fold: 0, call: 0, raise: 100 },
+    'AJs': { fold: 0, call: 0, raise: 100 },
+    'ATs': { fold: 0, call: 0, raise: 100 },
+    'A9s': { fold: 0, call: 0, raise: 100 },
+    'A8s': { fold: 0, call: 0, raise: 100 },
+    'A7s': { fold: 0, call: 0, raise: 100 },
+    'A6s': { fold: 0, call: 0, raise: 100 },
+    'A5s': { fold: 0, call: 0, raise: 100 },
+    'A4s': { fold: 0, call: 0, raise: 100 },
+    'A3s': { fold: 0, call: 0, raise: 100 },
+    'A2s': { fold: 0, call: 0, raise: 100 },
+    'AKo': { fold: 0, call: 0, raise: 100 },
+    'AQo': { fold: 0, call: 0, raise: 100 },
+    'AJo': { fold: 0, call: 0, raise: 100 },
+    'ATo': { fold: 0, call: 0, raise: 100 },
+    'A9o': { fold: 0, call: 0, raise: 100 },
+    'A8o': { fold: 10, call: 0, raise: 90 },
+    'A7o': { fold: 20, call: 0, raise: 80 },
+    'A6o': { fold: 30, call: 0, raise: 70 },
+    'A5o': { fold: 20, call: 0, raise: 80 },
+    'A4o': { fold: 30, call: 0, raise: 70 },
+    'A3o': { fold: 40, call: 0, raise: 60 },
+    'A2o': { fold: 50, call: 0, raise: 50 },
+    'KQs': { fold: 0, call: 0, raise: 100 },
+    'KJs': { fold: 0, call: 0, raise: 100 },
+    'KTs': { fold: 0, call: 0, raise: 100 },
+    'K9s': { fold: 0, call: 0, raise: 100 },
+    'K8s': { fold: 10, call: 0, raise: 90 },
+    'K7s': { fold: 20, call: 0, raise: 80 },
+    'K6s': { fold: 30, call: 0, raise: 70 },
+    'K5s': { fold: 40, call: 0, raise: 60 },
+    'K4s': { fold: 50, call: 0, raise: 50 },
+    'K3s': { fold: 60, call: 0, raise: 40 },
+    'K2s': { fold: 70, call: 0, raise: 30 },
+    'KQo': { fold: 0, call: 0, raise: 100 },
+    'KJo': { fold: 0, call: 0, raise: 100 },
+    'KTo': { fold: 10, call: 0, raise: 90 },
+    'K9o': { fold: 40, call: 0, raise: 60 },
+    'K8o': { fold: 60, call: 0, raise: 40 },
+    'QJs': { fold: 0, call: 0, raise: 100 },
+    'QTs': { fold: 0, call: 0, raise: 100 },
+    'Q9s': { fold: 10, call: 0, raise: 90 },
+    'Q8s': { fold: 30, call: 0, raise: 70 },
+    'Q7s': { fold: 50, call: 0, raise: 50 },
+    'Q6s': { fold: 60, call: 0, raise: 40 },
+    'Q5s': { fold: 50, call: 0, raise: 50 },
+    'QJo': { fold: 10, call: 0, raise: 90 },
+    'QTo': { fold: 30, call: 0, raise: 70 },
+    'Q9o': { fold: 60, call: 0, raise: 40 },
+    'JTs': { fold: 0, call: 0, raise: 100 },
+    'J9s': { fold: 10, call: 0, raise: 90 },
+    'J8s': { fold: 30, call: 0, raise: 70 },
+    'J7s': { fold: 60, call: 0, raise: 40 },
+    'JTo': { fold: 20, call: 0, raise: 80 },
+    'J9o': { fold: 60, call: 0, raise: 40 },
+    'T9s': { fold: 0, call: 0, raise: 100 },
+    'T8s': { fold: 20, call: 0, raise: 80 },
+    'T7s': { fold: 50, call: 0, raise: 50 },
+    'T9o': { fold: 50, call: 0, raise: 50 },
+    '98s': { fold: 10, call: 0, raise: 90 },
+    '97s': { fold: 30, call: 0, raise: 70 },
+    '87s': { fold: 20, call: 0, raise: 80 },
+    '86s': { fold: 40, call: 0, raise: 60 },
+    '76s': { fold: 30, call: 0, raise: 70 },
+    '75s': { fold: 50, call: 0, raise: 50 },
+    '65s': { fold: 40, call: 0, raise: 60 },
+    '54s': { fold: 50, call: 0, raise: 50 },
+  }
 };
 
-// ポジション別オープンレンジ (%)
-const OPEN_RANGES = {
-  'UTG': 15,
-  'HJ': 18,
-  'CO': 25,
-  'BTN': 40,
-  'SB': 35,
-  'BB': 100 // BBはオープンしない（チェック）
+// VS OPEN レンジ: 各オープナーに対する3bet/コール/フォールド頻度
+const VS_OPEN_RANGES = {
+  // BBがSBのオープンに対して
+  BB_vs_SB: {
+    'AA': { fold: 0, call: 0, raise: 100 },
+    'KK': { fold: 0, call: 0, raise: 100 },
+    'QQ': { fold: 0, call: 0, raise: 100 },
+    'JJ': { fold: 0, call: 15, raise: 85 },
+    'TT': { fold: 0, call: 30, raise: 70 },
+    '99': { fold: 0, call: 50, raise: 50 },
+    '88': { fold: 0, call: 60, raise: 40 },
+    '77': { fold: 0, call: 70, raise: 30 },
+    '66': { fold: 10, call: 70, raise: 20 },
+    '55': { fold: 15, call: 70, raise: 15 },
+    '44': { fold: 25, call: 65, raise: 10 },
+    '33': { fold: 30, call: 60, raise: 10 },
+    '22': { fold: 35, call: 55, raise: 10 },
+    'AKs': { fold: 0, call: 0, raise: 100 },
+    'AQs': { fold: 0, call: 10, raise: 90 },
+    'AJs': { fold: 0, call: 25, raise: 75 },
+    'ATs': { fold: 0, call: 35, raise: 65 },
+    'A9s': { fold: 0, call: 50, raise: 50 },
+    'A8s': { fold: 0, call: 55, raise: 45 },
+    'A7s': { fold: 0, call: 60, raise: 40 },
+    'A6s': { fold: 0, call: 60, raise: 40 },
+    'A5s': { fold: 0, call: 40, raise: 60 },
+    'A4s': { fold: 0, call: 50, raise: 50 },
+    'A3s': { fold: 0, call: 55, raise: 45 },
+    'A2s': { fold: 0, call: 60, raise: 40 },
+    'AKo': { fold: 0, call: 0, raise: 100 },
+    'AQo': { fold: 0, call: 20, raise: 80 },
+    'AJo': { fold: 0, call: 40, raise: 60 },
+    'ATo': { fold: 0, call: 55, raise: 45 },
+    'A9o': { fold: 10, call: 60, raise: 30 },
+    'A8o': { fold: 15, call: 60, raise: 25 },
+    'A7o': { fold: 20, call: 60, raise: 20 },
+    'A6o': { fold: 25, call: 60, raise: 15 },
+    'A5o': { fold: 20, call: 55, raise: 25 },
+    'A4o': { fold: 25, call: 55, raise: 20 },
+    'A3o': { fold: 30, call: 55, raise: 15 },
+    'A2o': { fold: 35, call: 55, raise: 10 },
+    'KQs': { fold: 0, call: 20, raise: 80 },
+    'KJs': { fold: 0, call: 35, raise: 65 },
+    'KTs': { fold: 0, call: 45, raise: 55 },
+    'K9s': { fold: 0, call: 60, raise: 40 },
+    'K8s': { fold: 10, call: 65, raise: 25 },
+    'K7s': { fold: 15, call: 65, raise: 20 },
+    'K6s': { fold: 15, call: 65, raise: 20 },
+    'K5s': { fold: 20, call: 60, raise: 20 },
+    'K4s': { fold: 25, call: 60, raise: 15 },
+    'K3s': { fold: 30, call: 55, raise: 15 },
+    'K2s': { fold: 35, call: 55, raise: 10 },
+    'KQo': { fold: 0, call: 30, raise: 70 },
+    'KJo': { fold: 0, call: 50, raise: 50 },
+    'KTo': { fold: 5, call: 60, raise: 35 },
+    'K9o': { fold: 15, call: 65, raise: 20 },
+    'K8o': { fold: 30, call: 60, raise: 10 },
+    'K7o': { fold: 40, call: 55, raise: 5 },
+    'K6o': { fold: 50, call: 45, raise: 5 },
+    'K5o': { fold: 55, call: 40, raise: 5 },
+    'QJs': { fold: 0, call: 40, raise: 60 },
+    'QTs': { fold: 0, call: 50, raise: 50 },
+    'Q9s': { fold: 5, call: 60, raise: 35 },
+    'Q8s': { fold: 15, call: 65, raise: 20 },
+    'Q7s': { fold: 25, call: 60, raise: 15 },
+    'Q6s': { fold: 30, call: 55, raise: 15 },
+    'Q5s': { fold: 35, call: 50, raise: 15 },
+    'Q4s': { fold: 40, call: 50, raise: 10 },
+    'Q3s': { fold: 45, call: 45, raise: 10 },
+    'Q2s': { fold: 50, call: 40, raise: 10 },
+    'QJo': { fold: 5, call: 55, raise: 40 },
+    'QTo': { fold: 10, call: 60, raise: 30 },
+    'Q9o': { fold: 25, call: 60, raise: 15 },
+    'Q8o': { fold: 40, call: 50, raise: 10 },
+    'JTs': { fold: 0, call: 50, raise: 50 },
+    'J9s': { fold: 5, call: 60, raise: 35 },
+    'J8s': { fold: 15, call: 65, raise: 20 },
+    'J7s': { fold: 30, call: 55, raise: 15 },
+    'J6s': { fold: 40, call: 50, raise: 10 },
+    'JTo': { fold: 10, call: 60, raise: 30 },
+    'J9o': { fold: 25, call: 60, raise: 15 },
+    'J8o': { fold: 45, call: 45, raise: 10 },
+    'T9s': { fold: 0, call: 55, raise: 45 },
+    'T8s': { fold: 10, call: 65, raise: 25 },
+    'T7s': { fold: 25, call: 60, raise: 15 },
+    'T9o': { fold: 20, call: 60, raise: 20 },
+    '98s': { fold: 5, call: 60, raise: 35 },
+    '97s': { fold: 15, call: 65, raise: 20 },
+    '96s': { fold: 30, call: 55, raise: 15 },
+    '98o': { fold: 30, call: 55, raise: 15 },
+    '87s': { fold: 10, call: 60, raise: 30 },
+    '86s': { fold: 20, call: 60, raise: 20 },
+    '87o': { fold: 40, call: 50, raise: 10 },
+    '76s': { fold: 15, call: 60, raise: 25 },
+    '75s': { fold: 30, call: 55, raise: 15 },
+    '65s': { fold: 20, call: 60, raise: 20 },
+    '64s': { fold: 35, call: 50, raise: 15 },
+    '54s': { fold: 25, call: 55, raise: 20 },
+    '53s': { fold: 40, call: 45, raise: 15 },
+    '43s': { fold: 45, call: 45, raise: 10 },
+  },
+
+  // BBがBTNのオープンに対して
+  BB_vs_BTN: {
+    'AA': { fold: 0, call: 0, raise: 100 },
+    'KK': { fold: 0, call: 0, raise: 100 },
+    'QQ': { fold: 0, call: 10, raise: 90 },
+    'JJ': { fold: 0, call: 20, raise: 80 },
+    'TT': { fold: 0, call: 40, raise: 60 },
+    '99': { fold: 0, call: 60, raise: 40 },
+    '88': { fold: 0, call: 70, raise: 30 },
+    '77': { fold: 5, call: 75, raise: 20 },
+    '66': { fold: 15, call: 70, raise: 15 },
+    '55': { fold: 25, call: 65, raise: 10 },
+    '44': { fold: 35, call: 55, raise: 10 },
+    '33': { fold: 45, call: 50, raise: 5 },
+    '22': { fold: 55, call: 40, raise: 5 },
+    'AKs': { fold: 0, call: 0, raise: 100 },
+    'AQs': { fold: 0, call: 15, raise: 85 },
+    'AJs': { fold: 0, call: 35, raise: 65 },
+    'ATs': { fold: 0, call: 50, raise: 50 },
+    'A9s': { fold: 5, call: 60, raise: 35 },
+    'A8s': { fold: 10, call: 60, raise: 30 },
+    'A7s': { fold: 15, call: 60, raise: 25 },
+    'A6s': { fold: 20, call: 60, raise: 20 },
+    'A5s': { fold: 10, call: 55, raise: 35 },
+    'A4s': { fold: 15, call: 55, raise: 30 },
+    'A3s': { fold: 20, call: 55, raise: 25 },
+    'A2s': { fold: 25, call: 55, raise: 20 },
+    'AKo': { fold: 0, call: 5, raise: 95 },
+    'AQo': { fold: 0, call: 30, raise: 70 },
+    'AJo': { fold: 5, call: 50, raise: 45 },
+    'ATo': { fold: 15, call: 55, raise: 30 },
+    'A9o': { fold: 30, call: 55, raise: 15 },
+    'A8o': { fold: 40, call: 50, raise: 10 },
+    'A7o': { fold: 50, call: 45, raise: 5 },
+    'KQs': { fold: 0, call: 30, raise: 70 },
+    'KJs': { fold: 5, call: 45, raise: 50 },
+    'KTs': { fold: 10, call: 55, raise: 35 },
+    'K9s': { fold: 20, call: 60, raise: 20 },
+    'K8s': { fold: 35, call: 55, raise: 10 },
+    'K7s': { fold: 45, call: 50, raise: 5 },
+    'KQo': { fold: 5, call: 45, raise: 50 },
+    'KJo': { fold: 15, call: 55, raise: 30 },
+    'KTo': { fold: 30, call: 55, raise: 15 },
+    'K9o': { fold: 50, call: 45, raise: 5 },
+    'QJs': { fold: 5, call: 50, raise: 45 },
+    'QTs': { fold: 15, call: 55, raise: 30 },
+    'Q9s': { fold: 30, call: 55, raise: 15 },
+    'Q8s': { fold: 45, call: 45, raise: 10 },
+    'QJo': { fold: 20, call: 55, raise: 25 },
+    'QTo': { fold: 35, call: 55, raise: 10 },
+    'JTs': { fold: 10, call: 55, raise: 35 },
+    'J9s': { fold: 25, call: 55, raise: 20 },
+    'J8s': { fold: 40, call: 50, raise: 10 },
+    'JTo': { fold: 30, call: 55, raise: 15 },
+    'T9s': { fold: 15, call: 55, raise: 30 },
+    'T8s': { fold: 30, call: 55, raise: 15 },
+    '98s': { fold: 20, call: 55, raise: 25 },
+    '97s': { fold: 35, call: 50, raise: 15 },
+    '87s': { fold: 25, call: 55, raise: 20 },
+    '76s': { fold: 30, call: 55, raise: 15 },
+    '65s': { fold: 35, call: 50, raise: 15 },
+    '54s': { fold: 40, call: 50, raise: 10 },
+  },
+
+  // BBがCOのオープンに対して
+  BB_vs_CO: {
+    'AA': { fold: 0, call: 0, raise: 100 },
+    'KK': { fold: 0, call: 0, raise: 100 },
+    'QQ': { fold: 0, call: 5, raise: 95 },
+    'JJ': { fold: 0, call: 15, raise: 85 },
+    'TT': { fold: 0, call: 35, raise: 65 },
+    '99': { fold: 5, call: 55, raise: 40 },
+    '88': { fold: 10, call: 65, raise: 25 },
+    '77': { fold: 20, call: 65, raise: 15 },
+    '66': { fold: 30, call: 60, raise: 10 },
+    '55': { fold: 40, call: 55, raise: 5 },
+    '44': { fold: 55, call: 40, raise: 5 },
+    '33': { fold: 65, call: 30, raise: 5 },
+    '22': { fold: 75, call: 20, raise: 5 },
+    'AKs': { fold: 0, call: 0, raise: 100 },
+    'AQs': { fold: 0, call: 10, raise: 90 },
+    'AJs': { fold: 0, call: 30, raise: 70 },
+    'ATs': { fold: 5, call: 45, raise: 50 },
+    'A9s': { fold: 15, call: 55, raise: 30 },
+    'A8s': { fold: 25, call: 55, raise: 20 },
+    'A7s': { fold: 30, call: 55, raise: 15 },
+    'A6s': { fold: 35, call: 50, raise: 15 },
+    'A5s': { fold: 25, call: 50, raise: 25 },
+    'A4s': { fold: 30, call: 50, raise: 20 },
+    'A3s': { fold: 40, call: 45, raise: 15 },
+    'A2s': { fold: 45, call: 45, raise: 10 },
+    'AKo': { fold: 0, call: 0, raise: 100 },
+    'AQo': { fold: 0, call: 25, raise: 75 },
+    'AJo': { fold: 10, call: 50, raise: 40 },
+    'ATo': { fold: 25, call: 55, raise: 20 },
+    'A9o': { fold: 45, call: 45, raise: 10 },
+    'A8o': { fold: 55, call: 40, raise: 5 },
+    'KQs': { fold: 0, call: 25, raise: 75 },
+    'KJs': { fold: 10, call: 45, raise: 45 },
+    'KTs': { fold: 20, call: 55, raise: 25 },
+    'K9s': { fold: 35, call: 55, raise: 10 },
+    'K8s': { fold: 50, call: 45, raise: 5 },
+    'KQo': { fold: 10, call: 45, raise: 45 },
+    'KJo': { fold: 25, call: 55, raise: 20 },
+    'KTo': { fold: 40, call: 50, raise: 10 },
+    'QJs': { fold: 15, call: 50, raise: 35 },
+    'QTs': { fold: 25, call: 55, raise: 20 },
+    'Q9s': { fold: 45, call: 45, raise: 10 },
+    'QJo': { fold: 30, call: 55, raise: 15 },
+    'QTo': { fold: 50, call: 45, raise: 5 },
+    'JTs': { fold: 20, call: 55, raise: 25 },
+    'J9s': { fold: 40, call: 50, raise: 10 },
+    'JTo': { fold: 45, call: 50, raise: 5 },
+    'T9s': { fold: 30, call: 55, raise: 15 },
+    'T8s': { fold: 50, call: 45, raise: 5 },
+    '98s': { fold: 35, call: 55, raise: 10 },
+    '87s': { fold: 40, call: 50, raise: 10 },
+    '76s': { fold: 45, call: 45, raise: 10 },
+    '65s': { fold: 50, call: 45, raise: 5 },
+  },
+
+  // BBがHJのオープンに対して
+  BB_vs_HJ: {
+    'AA': { fold: 0, call: 0, raise: 100 },
+    'KK': { fold: 0, call: 0, raise: 100 },
+    'QQ': { fold: 0, call: 0, raise: 100 },
+    'JJ': { fold: 0, call: 10, raise: 90 },
+    'TT': { fold: 0, call: 30, raise: 70 },
+    '99': { fold: 10, call: 50, raise: 40 },
+    '88': { fold: 20, call: 60, raise: 20 },
+    '77': { fold: 35, call: 55, raise: 10 },
+    '66': { fold: 50, call: 45, raise: 5 },
+    '55': { fold: 65, call: 30, raise: 5 },
+    '44': { fold: 80, call: 15, raise: 5 },
+    '33': { fold: 90, call: 10, raise: 0 },
+    '22': { fold: 95, call: 5, raise: 0 },
+    'AKs': { fold: 0, call: 0, raise: 100 },
+    'AQs': { fold: 0, call: 5, raise: 95 },
+    'AJs': { fold: 0, call: 25, raise: 75 },
+    'ATs': { fold: 10, call: 40, raise: 50 },
+    'A9s': { fold: 30, call: 45, raise: 25 },
+    'A8s': { fold: 40, call: 45, raise: 15 },
+    'A7s': { fold: 50, call: 40, raise: 10 },
+    'A6s': { fold: 55, call: 35, raise: 10 },
+    'A5s': { fold: 40, call: 40, raise: 20 },
+    'A4s': { fold: 50, call: 35, raise: 15 },
+    'A3s': { fold: 60, call: 30, raise: 10 },
+    'A2s': { fold: 70, call: 25, raise: 5 },
+    'AKo': { fold: 0, call: 0, raise: 100 },
+    'AQo': { fold: 5, call: 20, raise: 75 },
+    'AJo': { fold: 20, call: 45, raise: 35 },
+    'ATo': { fold: 40, call: 45, raise: 15 },
+    'A9o': { fold: 65, call: 30, raise: 5 },
+    'KQs': { fold: 5, call: 20, raise: 75 },
+    'KJs': { fold: 15, call: 40, raise: 45 },
+    'KTs': { fold: 30, call: 50, raise: 20 },
+    'K9s': { fold: 50, call: 45, raise: 5 },
+    'KQo': { fold: 15, call: 40, raise: 45 },
+    'KJo': { fold: 35, call: 50, raise: 15 },
+    'KTo': { fold: 55, call: 40, raise: 5 },
+    'QJs': { fold: 25, call: 45, raise: 30 },
+    'QTs': { fold: 35, call: 50, raise: 15 },
+    'Q9s': { fold: 60, call: 35, raise: 5 },
+    'QJo': { fold: 45, call: 45, raise: 10 },
+    'JTs': { fold: 30, call: 50, raise: 20 },
+    'J9s': { fold: 55, call: 40, raise: 5 },
+    'JTo': { fold: 55, call: 40, raise: 5 },
+    'T9s': { fold: 45, call: 45, raise: 10 },
+    '98s': { fold: 50, call: 45, raise: 5 },
+    '87s': { fold: 55, call: 40, raise: 5 },
+    '76s': { fold: 60, call: 35, raise: 5 },
+  },
+
+  // BBがUTGのオープンに対して
+  BB_vs_UTG: {
+    'AA': { fold: 0, call: 0, raise: 100 },
+    'KK': { fold: 0, call: 0, raise: 100 },
+    'QQ': { fold: 0, call: 0, raise: 100 },
+    'JJ': { fold: 0, call: 5, raise: 95 },
+    'TT': { fold: 5, call: 25, raise: 70 },
+    '99': { fold: 20, call: 45, raise: 35 },
+    '88': { fold: 35, call: 50, raise: 15 },
+    '77': { fold: 55, call: 40, raise: 5 },
+    '66': { fold: 70, call: 25, raise: 5 },
+    '55': { fold: 85, call: 10, raise: 5 },
+    '44': { fold: 95, call: 5, raise: 0 },
+    '33': { fold: 100, call: 0, raise: 0 },
+    '22': { fold: 100, call: 0, raise: 0 },
+    'AKs': { fold: 0, call: 0, raise: 100 },
+    'AQs': { fold: 0, call: 0, raise: 100 },
+    'AJs': { fold: 5, call: 20, raise: 75 },
+    'ATs': { fold: 20, call: 35, raise: 45 },
+    'A9s': { fold: 50, call: 35, raise: 15 },
+    'A8s': { fold: 65, call: 30, raise: 5 },
+    'A7s': { fold: 75, call: 20, raise: 5 },
+    'A6s': { fold: 80, call: 15, raise: 5 },
+    'A5s': { fold: 60, call: 30, raise: 10 },
+    'A4s': { fold: 70, call: 25, raise: 5 },
+    'A3s': { fold: 80, call: 15, raise: 5 },
+    'A2s': { fold: 90, call: 10, raise: 0 },
+    'AKo': { fold: 0, call: 0, raise: 100 },
+    'AQo': { fold: 5, call: 15, raise: 80 },
+    'AJo': { fold: 35, call: 40, raise: 25 },
+    'ATo': { fold: 60, call: 35, raise: 5 },
+    'A9o': { fold: 85, call: 15, raise: 0 },
+    'KQs': { fold: 10, call: 15, raise: 75 },
+    'KJs': { fold: 25, call: 35, raise: 40 },
+    'KTs': { fold: 45, call: 40, raise: 15 },
+    'K9s': { fold: 70, call: 25, raise: 5 },
+    'KQo': { fold: 25, call: 35, raise: 40 },
+    'KJo': { fold: 50, call: 40, raise: 10 },
+    'KTo': { fold: 75, call: 20, raise: 5 },
+    'QJs': { fold: 35, call: 40, raise: 25 },
+    'QTs': { fold: 50, call: 40, raise: 10 },
+    'Q9s': { fold: 75, call: 20, raise: 5 },
+    'QJo': { fold: 60, call: 35, raise: 5 },
+    'JTs': { fold: 45, call: 45, raise: 10 },
+    'J9s': { fold: 70, call: 25, raise: 5 },
+    'T9s': { fold: 60, call: 35, raise: 5 },
+    '98s': { fold: 65, call: 30, raise: 5 },
+    '87s': { fold: 70, call: 25, raise: 5 },
+    '76s': { fold: 75, call: 20, raise: 5 },
+  },
+
+  // SBがBTNのオープンに対して
+  SB_vs_BTN: {
+    'AA': { fold: 0, call: 0, raise: 100 },
+    'KK': { fold: 0, call: 0, raise: 100 },
+    'QQ': { fold: 0, call: 0, raise: 100 },
+    'JJ': { fold: 0, call: 10, raise: 90 },
+    'TT': { fold: 0, call: 25, raise: 75 },
+    '99': { fold: 0, call: 40, raise: 60 },
+    '88': { fold: 5, call: 55, raise: 40 },
+    '77': { fold: 15, call: 60, raise: 25 },
+    '66': { fold: 30, call: 55, raise: 15 },
+    '55': { fold: 45, call: 45, raise: 10 },
+    '44': { fold: 60, call: 35, raise: 5 },
+    '33': { fold: 75, call: 20, raise: 5 },
+    '22': { fold: 85, call: 10, raise: 5 },
+    'AKs': { fold: 0, call: 0, raise: 100 },
+    'AQs': { fold: 0, call: 5, raise: 95 },
+    'AJs': { fold: 0, call: 20, raise: 80 },
+    'ATs': { fold: 0, call: 35, raise: 65 },
+    'A9s': { fold: 10, call: 50, raise: 40 },
+    'A8s': { fold: 20, call: 50, raise: 30 },
+    'A7s': { fold: 30, call: 50, raise: 20 },
+    'A6s': { fold: 35, call: 45, raise: 20 },
+    'A5s': { fold: 20, call: 45, raise: 35 },
+    'A4s': { fold: 30, call: 45, raise: 25 },
+    'A3s': { fold: 40, call: 40, raise: 20 },
+    'A2s': { fold: 50, call: 35, raise: 15 },
+    'AKo': { fold: 0, call: 0, raise: 100 },
+    'AQo': { fold: 0, call: 15, raise: 85 },
+    'AJo': { fold: 10, call: 40, raise: 50 },
+    'ATo': { fold: 25, call: 50, raise: 25 },
+    'A9o': { fold: 50, call: 40, raise: 10 },
+    'A8o': { fold: 65, call: 30, raise: 5 },
+    'KQs': { fold: 0, call: 15, raise: 85 },
+    'KJs': { fold: 10, call: 35, raise: 55 },
+    'KTs': { fold: 20, call: 45, raise: 35 },
+    'K9s': { fold: 40, call: 45, raise: 15 },
+    'K8s': { fold: 55, call: 35, raise: 10 },
+    'KQo': { fold: 10, call: 35, raise: 55 },
+    'KJo': { fold: 25, call: 50, raise: 25 },
+    'KTo': { fold: 45, call: 45, raise: 10 },
+    'QJs': { fold: 15, call: 40, raise: 45 },
+    'QTs': { fold: 25, call: 50, raise: 25 },
+    'Q9s': { fold: 45, call: 45, raise: 10 },
+    'QJo': { fold: 30, call: 50, raise: 20 },
+    'QTo': { fold: 50, call: 40, raise: 10 },
+    'JTs': { fold: 20, call: 50, raise: 30 },
+    'J9s': { fold: 40, call: 50, raise: 10 },
+    'JTo': { fold: 45, call: 45, raise: 10 },
+    'T9s': { fold: 30, call: 55, raise: 15 },
+    'T8s': { fold: 50, call: 40, raise: 10 },
+    '98s': { fold: 40, call: 50, raise: 10 },
+    '87s': { fold: 45, call: 45, raise: 10 },
+    '76s': { fold: 50, call: 40, raise: 10 },
+    '65s': { fold: 55, call: 35, raise: 10 },
+  }
 };
 
-// ポジション別3betレンジ (対オープンポジション別)
-const THREE_BET_RANGES = {
-  'vs_UTG': { 'HJ': 4, 'CO': 5, 'BTN': 6, 'SB': 7, 'BB': 8 },
-  'vs_HJ': { 'CO': 5, 'BTN': 6, 'SB': 7, 'BB': 8 },
-  'vs_CO': { 'BTN': 8, 'SB': 9, 'BB': 10 },
-  'vs_BTN': { 'SB': 10, 'BB': 12 },
-  'vs_SB': { 'BB': 15 }
-};
+// デフォルトレンジ（データにないハンドはフォールド）
+const DEFAULT_RANGE = { fold: 100, call: 0, raise: 0 };
 
-// ポジション別コールレンジ (対オープンポジション別)
-const CALL_RANGES = {
-  'vs_UTG': { 'HJ': 6, 'CO': 8, 'BTN': 10, 'SB': 5, 'BB': 12 },
-  'vs_HJ': { 'CO': 8, 'BTN': 12, 'SB': 6, 'BB': 14 },
-  'vs_CO': { 'BTN': 15, 'SB': 8, 'BB': 16 },
-  'vs_BTN': { 'SB': 10, 'BB': 18 },
-  'vs_SB': { 'BB': 25 }
-};
+// ============================================
+// ユーティリティ関数
+// ============================================
 
 const suits = ['hearts', 'diamonds', 'clubs', 'spades'];
 const RANK_NAMES = { 2:'2', 3:'3', 4:'4', 5:'5', 6:'6', 7:'7', 8:'8', 9:'9', 10:'T', 11:'J', 12:'Q', 13:'K', 14:'A' };
+
+// 席順（物理的な座席 - 固定）
+const SEAT_ORDER = [0, 1, 2, 3, 4, 5];
+
+// ポジション定義（BTNから右回り）
+const POSITIONS = ['BTN', 'SB', 'BB', 'UTG', 'HJ', 'CO'];
+
+// プリフロップアクション順序
+const PREFLOP_ACTION_ORDER = ['UTG', 'HJ', 'CO', 'BTN', 'SB', 'BB'];
 
 function createDeck() {
   const deck = [];
@@ -83,57 +754,70 @@ function getHandNotation(cards) {
   return r1 + r2 + suited;
 }
 
-function getHandRank(cards) {
-  const notation = getHandNotation(cards);
-  return HAND_RANKINGS[notation] || 80; // ランク外は80
+// BTNの席インデックスからプレイヤーのポジションを計算
+function getPositionForSeat(seatIndex, btnSeatIndex) {
+  const relativePosition = (seatIndex - btnSeatIndex + 6) % 6;
+  return POSITIONS[relativePosition];
 }
 
-// ハンド強度をパーセンタイルに変換 (1.0 = 最強, 0.0 = 最弱)
-function getHandStrength(cards) {
-  const rank = getHandRank(cards);
-  // rank 1 = 100%, rank 169 = 0%
-  return Math.max(0, 1 - (rank - 1) / 168);
+// プリフロップアクション順序でプレイヤーをソート
+function getActionOrder(players) {
+  return [...players]
+    .filter(p => !p.isFolded && p.isActive)
+    .sort((a, b) => {
+      const aOrder = PREFLOP_ACTION_ORDER.indexOf(a.position);
+      const bOrder = PREFLOP_ACTION_ORDER.indexOf(b.position);
+      return aOrder - bOrder;
+    });
 }
 
-function createGame() {
-  const positions = ['BTN', 'SB', 'BB', 'UTG', 'HJ', 'CO'];
+// ============================================
+// ゲーム管理
+// ============================================
+
+function createGame(handNumber = 1, btnSeatIndex = 0, heroSeatIndex = null) {
   const deck = createDeck();
 
-  // ヒーローはランダムなポジション
-  const heroIndex = Math.floor(Math.random() * 6);
+  // ヒーローの席（指定なければランダム）
+  if (heroSeatIndex === null) {
+    heroSeatIndex = Math.floor(Math.random() * 6);
+  }
 
-  const players = positions.map((pos, i) => {
+  const players = SEAT_ORDER.map((seatIndex) => {
     const holeCards = [deck.pop(), deck.pop()];
+    const position = getPositionForSeat(seatIndex, btnSeatIndex);
     return {
-      id: `player-${i + 1}`,
-      name: i === heroIndex ? 'Hero' : `Player ${i + 1}`,
-      position: pos,
+      id: `player-${seatIndex}`,
+      seatIndex: seatIndex,
+      name: seatIndex === heroSeatIndex ? 'Hero' : `Player ${seatIndex + 1}`,
+      position: position,
       stack: 10000,
       holeCards: holeCards,
-      isHero: i === heroIndex,
+      isHero: seatIndex === heroSeatIndex,
       isActive: true,
       isFolded: false,
       isAllIn: false,
       currentBet: 0,
       totalBetThisHand: 0,
       hasActed: false,
-      lastAction: null,      // 最後のアクション
-      lastActionAmount: null // 最後のアクション額
+      lastAction: null,
+      lastActionAmount: null
     };
   });
 
   // ブラインドを支払う
-  const sbIndex = positions.indexOf('SB');
-  const bbIndex = positions.indexOf('BB');
-  players[sbIndex].stack -= 50;
-  players[sbIndex].currentBet = 50;
-  players[sbIndex].totalBetThisHand = 50;
-  players[bbIndex].stack -= 100;
-  players[bbIndex].currentBet = 100;
-  players[bbIndex].totalBetThisHand = 100;
+  const sbPlayer = players.find(p => p.position === 'SB');
+  const bbPlayer = players.find(p => p.position === 'BB');
+  sbPlayer.stack -= 50;
+  sbPlayer.currentBet = 50;
+  sbPlayer.totalBetThisHand = 50;
+  bbPlayer.stack -= 100;
+  bbPlayer.currentBet = 100;
+  bbPlayer.totalBetThisHand = 100;
 
-  // UTGから開始
-  const utgIndex = positions.indexOf('UTG');
+  // UTGから開始（プリフロップアクション順序の最初）
+  const utgPlayer = players.find(p => p.position === 'UTG');
+  const startIndex = players.indexOf(utgPlayer);
 
   gameState = {
     id: Date.now().toString(),
@@ -143,23 +827,24 @@ function createGame() {
     pot: 150,
     sidePots: [],
     currentStreet: 'preflop',
-    currentPlayerIndex: utgIndex,
-    dealerIndex: 0,
+    currentPlayerIndex: startIndex,
+    btnSeatIndex: btnSeatIndex,
+    heroSeatIndex: heroSeatIndex,
     blinds: { sb: 50, bb: 100 },
     ante: 0,
     actionHistory: [
       { position: 'SB', action: 'post', amount: 50, description: 'SB: Post 50' },
       { position: 'BB', action: 'post', amount: 100, description: 'BB: Post 100' }
     ],
-    handNumber: 1,
+    handNumber: handNumber,
     isHandComplete: false,
     lastRaiseAmount: 100,
     lastAggressorIndex: null,
     currentBet: 100,
-    firstRaiserPosition: null,  // 最初にレイズしたポジション
-    firstRaiserAmount: null,    // 最初のレイズ額
-    pendingAIActions: [],       // まだ表示していないAIアクション
-    aiActionsProcessed: false   // AIアクションが処理済みか
+    firstRaiserPosition: null,
+    firstRaiserAmount: null,
+    pendingAIActions: [],
+    aiActionsProcessed: false
   };
 
   // AIアクションを事前計算（ヒーローの番まで）
@@ -168,12 +853,24 @@ function createGame() {
   return gameState;
 }
 
-// ヒーローの番までのAIアクションを事前計算
+// 次のハンドへ（BTNを右回り）
+function nextHand() {
+  const newBtnSeatIndex = (gameState.btnSeatIndex + 1) % 6;
+  const newHandNumber = gameState.handNumber + 1;
+  const heroSeatIndex = gameState.heroSeatIndex;
+
+  return createGame(newHandNumber, newBtnSeatIndex, heroSeatIndex);
+}
+
+// ============================================
+// AIアクション
+// ============================================
+
 function calculatePendingAIActions() {
   if (!gameState) return;
 
   const pendingActions = [];
-  let tempState = JSON.parse(JSON.stringify(gameState)); // 状態のコピー
+  let tempState = JSON.parse(JSON.stringify(gameState));
   let currentIndex = tempState.currentPlayerIndex;
 
   while (true) {
@@ -186,7 +883,7 @@ function calculatePendingAIActions() {
 
     // フォールド済みや非アクティブはスキップ
     if (player.isFolded || !player.isActive) {
-      currentIndex = (currentIndex + 1) % 6;
+      currentIndex = getNextPlayerIndex(currentIndex, tempState.players);
       continue;
     }
 
@@ -210,7 +907,7 @@ function calculatePendingAIActions() {
       break;
     }
 
-    currentIndex = (currentIndex + 1) % 6;
+    currentIndex = getNextPlayerIndex(currentIndex, tempState.players);
 
     // 一周したらストリート終了チェック
     if (currentIndex === tempState.currentPlayerIndex) {
@@ -221,8 +918,74 @@ function calculatePendingAIActions() {
   gameState.pendingAIActions = pendingActions;
 }
 
-function countActivePlayers(state) {
-  return state.players.filter(p => !p.isFolded && p.isActive).length;
+function getNextPlayerIndex(currentIndex, players) {
+  // プリフロップアクション順序に基づいて次のプレイヤーを取得
+  const currentPlayer = players[currentIndex];
+  const actionOrder = PREFLOP_ACTION_ORDER;
+  const currentOrderIndex = actionOrder.indexOf(currentPlayer.position);
+
+  for (let i = 1; i <= 6; i++) {
+    const nextOrderIndex = (currentOrderIndex + i) % 6;
+    const nextPosition = actionOrder[nextOrderIndex];
+    const nextPlayer = players.find(p => p.position === nextPosition);
+    if (nextPlayer && !nextPlayer.isFolded && nextPlayer.isActive) {
+      return players.indexOf(nextPlayer);
+    }
+  }
+  return currentIndex;
+}
+
+function decideAIAction(player, state) {
+  const handNotation = getHandNotation(player.holeCards);
+  const position = player.position;
+  const hasRaise = state.currentBet > state.blinds.bb;
+
+  let rangeData;
+  let situationKey;
+
+  if (!hasRaise) {
+    // RFIシチュエーション
+    rangeData = RFI_RANGES[position] || {};
+    situationKey = 'RFI';
+  } else {
+    // VS OPENシチュエーション
+    const openerPosition = state.firstRaiserPosition;
+    const vsOpenKey = `${position}_vs_${openerPosition}`;
+    rangeData = VS_OPEN_RANGES[vsOpenKey] || {};
+    situationKey = `VS_${openerPosition}`;
+  }
+
+  const actions = rangeData[handNotation] || DEFAULT_RANGE;
+
+  // 確率に基づいてアクションを決定
+  const rand = Math.random() * 100;
+  let action, amount = 0;
+
+  if (rand < actions.fold) {
+    action = 'fold';
+  } else if (rand < actions.fold + actions.call) {
+    if (state.currentBet === 0 || (state.currentBet === player.currentBet)) {
+      action = 'check';
+    } else {
+      action = 'call';
+      amount = state.currentBet - player.currentBet;
+    }
+  } else {
+    action = 'raise';
+    // レイズ額を計算
+    if (!hasRaise) {
+      amount = state.blinds.bb * 2.5; // オープンレイズ
+    } else {
+      amount = state.currentBet * 3; // 3bet
+    }
+    amount = Math.min(amount, player.stack);
+  }
+
+  return {
+    action,
+    amount,
+    reasoning: `${position}の${situationKey}レンジに基づく`
+  };
 }
 
 function applyActionToState(state, playerIndex, action, amount = 0) {
@@ -237,6 +1000,7 @@ function applyActionToState(state, playerIndex, action, amount = 0) {
 
     case 'check':
       player.lastAction = 'check';
+      player.hasActed = true;
       break;
 
     case 'call':
@@ -247,222 +1011,76 @@ function applyActionToState(state, playerIndex, action, amount = 0) {
       state.pot += callAmount;
       player.lastAction = 'call';
       player.lastActionAmount = callAmount;
+      player.hasActed = true;
       break;
 
     case 'raise':
-      const raiseAmount = amount || state.currentBet * 2;
-      const additionalBet = raiseAmount - player.currentBet;
-      player.stack -= additionalBet;
-      player.currentBet = raiseAmount;
-      player.totalBetThisHand += additionalBet;
-      state.pot += additionalBet;
-      state.currentBet = raiseAmount;
-      state.lastRaiseAmount = raiseAmount;
+      const raiseTotal = amount;
+      const toAdd = raiseTotal - player.currentBet;
+      player.stack -= toAdd;
+      player.currentBet = raiseTotal;
+      player.totalBetThisHand += toAdd;
+      state.pot += toAdd;
+      state.currentBet = raiseTotal;
       player.lastAction = 'raise';
-      player.lastActionAmount = raiseAmount;
+      player.lastActionAmount = raiseTotal;
+      player.hasActed = true;
 
-      // 最初のレイザーを記録
       if (!state.firstRaiserPosition) {
         state.firstRaiserPosition = player.position;
-        state.firstRaiserAmount = raiseAmount;
+        state.firstRaiserAmount = raiseTotal;
       }
+
+      // 他のプレイヤーのhasActedをリセット
+      state.players.forEach((p, i) => {
+        if (i !== playerIndex && !p.isFolded) {
+          p.hasActed = false;
+        }
+      });
       break;
-
-    case 'all-in':
-      const allinAmount = player.stack;
-      state.pot += allinAmount;
-      player.currentBet += allinAmount;
-      player.totalBetThisHand += allinAmount;
-      if (player.currentBet > state.currentBet) {
-        state.currentBet = player.currentBet;
-      }
-      player.stack = 0;
-      player.isAllIn = true;
-      player.lastAction = 'all-in';
-      player.lastActionAmount = allinAmount;
-      break;
-  }
-
-  player.hasActed = true;
-}
-
-function decideAIAction(player, state) {
-  const handStrength = getHandStrength(player.holeCards);
-  const position = player.position;
-  const toCall = state.currentBet - player.currentBet;
-  const bb = state.blinds.bb;
-
-  // 誰かがすでにレイズしているか
-  const hasRaiseBefore = state.currentBet > bb;
-  const raiserPosition = state.firstRaiserPosition;
-
-  if (!hasRaiseBefore) {
-    // オープンの状況
-    const openRange = OPEN_RANGES[position] / 100;
-
-    if (handStrength >= (1 - openRange)) {
-      // オープンレイズ（2.5BB）
-      const raiseSize = Math.round(bb * 2.5);
-      return {
-        action: 'raise',
-        amount: raiseSize,
-        reasoning: `${position}から${(openRange * 100).toFixed(0)}%レンジでオープン`
-      };
-    } else {
-      return { action: 'fold', reasoning: 'オープンレンジ外' };
-    }
-  } else {
-    // 誰かがすでにレイズしている
-    const threeBetRanges = THREE_BET_RANGES[`vs_${raiserPosition}`] || {};
-    const callRanges = CALL_RANGES[`vs_${raiserPosition}`] || {};
-
-    const threeBetRange = (threeBetRanges[position] || 3) / 100;
-    const callRange = (callRanges[position] || 5) / 100;
-
-    if (handStrength >= (1 - threeBetRange)) {
-      // 3bet
-      const threeBetSize = Math.round(state.currentBet * 3);
-      return {
-        action: 'raise',
-        amount: threeBetSize,
-        reasoning: `${raiserPosition}のオープンに対して3bet`
-      };
-    } else if (handStrength >= (1 - (threeBetRange + callRange))) {
-      // コール
-      return {
-        action: 'call',
-        amount: toCall,
-        reasoning: `${raiserPosition}のオープンにコール`
-      };
-    } else {
-      return { action: 'fold', reasoning: `${raiserPosition}のオープンに対してフォールド` };
-    }
   }
 }
 
-// 次のAIアクションを取得して適用
+function countActivePlayers(state) {
+  return state.players.filter(p => !p.isFolded && p.isActive).length;
+}
+
 function getNextAIAction() {
   if (!gameState || gameState.pendingAIActions.length === 0) {
     return null;
   }
 
-  const nextAction = gameState.pendingAIActions.shift();
+  const action = gameState.pendingAIActions.shift();
 
   // 実際のゲーム状態に適用
-  const player = gameState.players[nextAction.playerIndex];
-  applyActionToState(gameState, nextAction.playerIndex, nextAction.action, nextAction.amount);
+  const playerIndex = action.playerIndex;
+  applyActionToState(gameState, playerIndex, action.action, action.amount);
 
-  // アクション履歴に追加
-  let description = `${nextAction.position}: `;
-  switch (nextAction.action) {
-    case 'fold':
-      description += 'Fold';
-      break;
-    case 'check':
-      description += 'Check';
-      break;
-    case 'call':
-      description += `Call ${nextAction.amount}`;
-      break;
-    case 'raise':
-      description += `Raise ${nextAction.amount}`;
-      break;
-    case 'all-in':
-      description += `All-in ${nextAction.amount}`;
-      break;
+  // 次のプレイヤーへ
+  gameState.currentPlayerIndex = getNextPlayerIndex(playerIndex, gameState.players);
+
+  // ハンド終了チェック
+  if (countActivePlayers(gameState) <= 1) {
+    gameState.isHandComplete = true;
   }
 
-  gameState.actionHistory.push({
-    position: nextAction.position,
-    action: nextAction.action,
-    amount: nextAction.amount,
-    description: description
-  });
-
-  // 次のプレイヤーに進める
-  gameState.currentPlayerIndex = (nextAction.playerIndex + 1) % 6;
-
   return {
-    ...nextAction,
-    description,
-    remainingActions: gameState.pendingAIActions.length,
-    game: gameState
+    ...action,
+    game: gameState,
+    remainingActions: gameState.pendingAIActions.length
   };
 }
 
-function executeAction(player, action, amount = 0) {
-  const playerIndex = gameState.players.findIndex(p => p.id === player.id);
+function executeAction(player, action, amount) {
+  const playerIndex = gameState.players.indexOf(player);
   applyActionToState(gameState, playerIndex, action, amount);
+  player.hasActed = true;
 
-  // アクション履歴に追加
-  let description = `${player.position}: `;
-  switch (action) {
-    case 'fold':
-      description += 'Fold';
-      break;
-    case 'check':
-      description += 'Check';
-      break;
-    case 'call':
-      const callAmount = gameState.currentBet - player.currentBet;
-      description += `Call ${callAmount}`;
-      break;
-    case 'raise':
-      description += `Raise ${amount}`;
-      break;
-    case 'all-in':
-      description += `All-in ${player.stack}`;
-      break;
+  // 最初のレイズを記録
+  if (action === 'raise' && !gameState.firstRaiserPosition) {
+    gameState.firstRaiserPosition = player.position;
+    gameState.firstRaiserAmount = amount;
   }
-
-  gameState.actionHistory.push({
-    position: player.position,
-    action: action,
-    amount: amount,
-    description: description
-  });
-}
-
-function processAIActionsAfterHero() {
-  const aiActions = [];
-
-  while (gameState && !gameState.isHandComplete) {
-    const currentPlayer = gameState.players[gameState.currentPlayerIndex];
-
-    // ヒーローの番になったら停止
-    if (currentPlayer.isHero) {
-      break;
-    }
-
-    // フォールド済みや非アクティブはスキップ
-    if (currentPlayer.isFolded || !currentPlayer.isActive) {
-      gameState.currentPlayerIndex = (gameState.currentPlayerIndex + 1) % 6;
-      continue;
-    }
-
-    // AIのアクションを決定
-    const action = decideAIAction(currentPlayer, gameState);
-    aiActions.push({
-      playerId: currentPlayer.id,
-      position: currentPlayer.position,
-      action: action.action,
-      amount: action.amount,
-      reasoning: action.reasoning
-    });
-
-    // アクションを実行
-    executeAction(currentPlayer, action.action, action.amount);
-
-    // ハンドが終了したかチェック
-    if (checkHandComplete()) {
-      gameState.isHandComplete = true;
-      break;
-    }
-
-    gameState.currentPlayerIndex = (gameState.currentPlayerIndex + 1) % 6;
-  }
-
-  return aiActions;
 }
 
 function checkHandComplete() {
@@ -470,38 +1088,9 @@ function checkHandComplete() {
   return activePlayers.length <= 1;
 }
 
-function advanceStreet() {
-  const streets = ['preflop', 'flop', 'turn', 'river', 'showdown'];
-  const currentIndex = streets.indexOf(gameState.currentStreet);
-
-  if (currentIndex < streets.length - 1) {
-    gameState.currentStreet = streets[currentIndex + 1];
-
-    // コミュニティカードを配る
-    if (gameState.currentStreet === 'flop') {
-      gameState.communityCards = [gameState.deck.pop(), gameState.deck.pop(), gameState.deck.pop()];
-    } else if (gameState.currentStreet === 'turn' || gameState.currentStreet === 'river') {
-      gameState.communityCards.push(gameState.deck.pop());
-    }
-
-    // ベットをリセット
-    gameState.players.forEach(p => {
-      p.currentBet = 0;
-      p.hasActed = false;
-      p.lastAction = null;
-      p.lastActionAmount = null;
-    });
-    gameState.currentBet = 0;
-    gameState.firstRaiserPosition = null;
-    gameState.firstRaiserAmount = null;
-
-    // SBから開始
-    gameState.currentPlayerIndex = 1;
-
-    // AIアクションを事前計算
-    calculatePendingAIActions();
-  }
-}
+// ============================================
+// GTO推奨（ハードコードデータから）
+// ============================================
 
 function getGTORecommendation() {
   if (!gameState) return null;
@@ -509,225 +1098,109 @@ function getGTORecommendation() {
   const hero = gameState.players.find(p => p.isHero);
   if (!hero) return null;
 
-  const handRank = getHandRank(hero.holeCards);
-  const handStrength = getHandStrength(hero.holeCards);
   const handNotation = getHandNotation(hero.holeCards);
-  const toCall = gameState.currentBet - hero.currentBet;
   const position = hero.position;
+  const hasRaise = gameState.currentBet > gameState.blinds.bb;
+  const openerPosition = gameState.firstRaiserPosition;
   const bb = gameState.blinds.bb;
-  const pot = gameState.pot;
 
-  // 前のアクション情報を収集
-  const actionsBeforeHero = gameState.actionHistory.filter(a => a.action !== 'post');
-  const hasRaise = gameState.currentBet > bb;
-  const raiserPosition = gameState.firstRaiserPosition;
-  const raiserAmount = gameState.firstRaiserAmount;
+  let rangeData;
+  let situation;
+  let situationDescription;
 
-  // ポットオッズ計算
-  const potOdds = toCall > 0 ? (toCall / (pot + toCall) * 100).toFixed(1) : 0;
+  if (!hasRaise) {
+    // RFIシチュエーション
+    rangeData = RFI_RANGES[position] || {};
+    situation = 'RFI';
+    situationDescription = `${position}からのオープン`;
+  } else {
+    // VS OPENシチュエーション
+    const vsOpenKey = `${position}_vs_${openerPosition}`;
+    rangeData = VS_OPEN_RANGES[vsOpenKey] || {};
+    situation = 'VS_OPEN';
+    situationDescription = `${openerPosition}のオープンに対する${position}のアクション`;
+  }
 
-  let fold_percentage, call_percentage, raise_percentage;
-  let raise_size, raise_size_description, raise_reasoning;
-  let situation_analysis = [];
-  let reasoning = [];
+  const actions = rangeData[handNotation] || DEFAULT_RANGE;
 
   // 状況分析を生成
-  if (!hasRaise) {
-    situation_analysis.push('まだ誰もオープンしていません（リンプもありません）。');
-    situation_analysis.push(`あなたのポジションは${position}です。`);
-    situation_analysis.push(`${position}からのオープンレンジは約${OPEN_RANGES[position]}%です。`);
+  const situation_analysis = [];
+  const reasoning = [];
+
+  if (situation === 'RFI') {
+    situation_analysis.push(`あなたは${position}にいます。`);
+    situation_analysis.push('まだ誰もオープンしていません。');
+
+    if (actions.raise > 0) {
+      reasoning.push(`${handNotation}は${position}からのオープンレンジに含まれます。`);
+      reasoning.push(`${actions.raise}%の頻度でオープンレイズが推奨されます。`);
+      if (actions.fold > 0) {
+        reasoning.push(`${actions.fold}%の頻度でフォールドも混合戦略として推奨されます。`);
+      }
+    } else {
+      reasoning.push(`${handNotation}は${position}からのオープンレンジ外です。`);
+      reasoning.push('フォールドして次のハンドを待ちましょう。');
+    }
   } else {
-    situation_analysis.push(`${raiserPosition}から${(raiserAmount / bb).toFixed(1)}BBのオープンレイズが入っています。`);
-    situation_analysis.push(`${raiserPosition}のオープンレンジは約${OPEN_RANGES[raiserPosition]}%（タイト〜スタンダード）です。`);
-    situation_analysis.push(`コールに必要なチップは${toCall}、ポットオッズは約${potOdds}%です。`);
+    const raiserAmount = gameState.firstRaiserAmount || bb * 2.5;
+    const toCall = gameState.currentBet - hero.currentBet;
 
-    // 3betがあった場合
-    const threeBets = actionsBeforeHero.filter(a => a.action === 'raise').length;
-    if (threeBets >= 2) {
-      situation_analysis.push('すでに3bet（リレイズ）が入っており、レンジはかなり狭くなっています。');
+    situation_analysis.push(`${openerPosition}から${(raiserAmount / bb).toFixed(1)}BBのオープンがありました。`);
+    situation_analysis.push(`あなたは${position}にいます。`);
+    situation_analysis.push(`コールに必要なチップ: ${toCall}`);
+
+    if (actions.raise > 0) {
+      reasoning.push(`${handNotation}は${openerPosition}のオープンに対して3betレンジに含まれます。`);
+      reasoning.push(`${actions.raise}%の頻度で3betが推奨されます。`);
     }
-  }
-
-  // プレミアムハンド (AA, KK, QQ, AK)
-  if (handRank <= 6) {
-    if (!hasRaise) {
-      fold_percentage = 0;
-      call_percentage = 0;
-      raise_percentage = 100;
-      raise_size = bb * 3;
-      raise_size_description = '3BB';
-      reasoning = [
-        `${handNotation}はプレミアムハンド（トップ3%）です。`,
-        '100%の頻度でオープンレイズします。',
-        `${position}からは必ずバリューを取りに行きます。`,
-        'リンプ（チェックでの参加）は絶対にNGです。'
-      ];
-      raise_reasoning = '標準的な3BBオープン。大きすぎるとコールされにくい。';
-    } else {
-      fold_percentage = 0;
-      call_percentage = 10;
-      raise_percentage = 90;
-      raise_size = Math.round(raiserAmount * 3);
-      raise_size_description = `3bet (${(raise_size / bb).toFixed(1)}BB)`;
-      reasoning = [
-        `${handNotation}は${raiserPosition}のオープンに対して3betレンジの中核です。`,
-        '90%の頻度で3betしてバリューを最大化します。',
-        '10%はトラップとしてスロープレイ（コール）に回します。',
-        `${raiserPosition}のレンジ（${OPEN_RANGES[raiserPosition]}%）に対してドミネートしています。`
-      ];
-      raise_reasoning = `${raiserPosition}のオープンに対する標準的な3xサイズ。コール頻度を最大化。`;
-    }
-  }
-  // 強いハンド (JJ-99, AQ, KQ)
-  else if (handRank <= 18) {
-    if (!hasRaise) {
-      fold_percentage = 0;
-      call_percentage = 15;
-      raise_percentage = 85;
-      raise_size = Math.round(bb * 2.5);
-      raise_size_description = '2.5BB';
-      reasoning = [
-        `${handNotation}は強いオープンハンドです（トップ10%）。`,
-        '85%の頻度でオープンレイズします。',
-        position === 'UTG' || position === 'HJ'
-          ? 'アーリーポジションでも十分にオープンできる強さです。'
-          : 'レイトポジションからは必ずオープンします。',
-        '稀にリンプでトラップも選択肢に。'
-      ];
-      raise_reasoning = '2.5BBは効率的なオープンサイズ。';
-    } else if (toCall <= bb * 3) {
-      const threeBetRange = THREE_BET_RANGES[`vs_${raiserPosition}`]?.[position] || 5;
-      const callRange = CALL_RANGES[`vs_${raiserPosition}`]?.[position] || 8;
-
-      fold_percentage = 10;
-      call_percentage = 55;
-      raise_percentage = 35;
-      raise_size = Math.round(raiserAmount * 3);
-      raise_size_description = `3bet (${(raise_size / bb).toFixed(1)}BB)`;
-      reasoning = [
-        `${handNotation}は${raiserPosition}のオープンに対してコールレンジの上位です。`,
-        `${raiserPosition}のオープンレンジ${OPEN_RANGES[raiserPosition]}%に対して良いエクイティがあります。`,
-        position === 'BTN' || position === 'CO'
-          ? 'ポジションがあるので3bet頻度を上げても良いです。'
-          : 'ポジションがないのでコール寄りにプレイします。',
-        'フォールドは相手が非常にタイトな場合のみ。'
-      ];
-      raise_reasoning = `3betする場合は3xサイズ。${raiserPosition}にプレッシャーを与えます。`;
-    } else {
-      fold_percentage = 50;
-      call_percentage = 45;
-      raise_percentage = 5;
-      reasoning = [
-        `大きなレイズに対して${handNotation}は難しいスポットです。`,
-        '相手のレンジはプレミアムに偏っている可能性が高いです。',
-        `ポットオッズ${potOdds}%を考慮してコールも検討できます。`,
-        'ドミネートされるリスクがあることを意識してください。'
-      ];
-    }
-  }
-  // ミディアムハンド (55, A9s, KTs等)
-  else if (handRank <= 30) {
-    if (!hasRaise) {
-      const isLatePosition = position === 'CO' || position === 'BTN';
-      if (isLatePosition) {
-        fold_percentage = 25;
-        call_percentage = 0;
-        raise_percentage = 75;
-        raise_size = Math.round(bb * 2.5);
-        raise_size_description = '2.5BB';
-        reasoning = [
-          `${handNotation}はレイトポジションからのスチール候補です。`,
-          `${position}のオープンレンジ${OPEN_RANGES[position]}%に含まれます。`,
-          'ブラインドをスチールできれば1.5BBの利益です。',
-          '3betされたら基本的にフォールドします。'
-        ];
-        raise_reasoning = 'スチール目的なので小さめの2.5BB。';
-      } else {
-        fold_percentage = 55;
-        call_percentage = 0;
-        raise_percentage = 45;
-        raise_size = Math.round(bb * 2.5);
-        raise_size_description = '2.5BB';
-        reasoning = [
-          `${handNotation}はアーリーポジションではボーダーラインです。`,
-          `${position}からのオープンレンジ${OPEN_RANGES[position]}%の下限に近いです。`,
-          '後ろに複数のプレイヤーが控えており、3betリスクがあります。',
-          'タイトにプレイすることでリークを減らせます。'
-        ];
-        raise_reasoning = 'オープンする場合は2.5BB。';
-      }
-    } else {
-      // オープンがあった場合
-      const isPocketPair = handNotation.length === 2; // AA, KK, 55等
-
-      if (isPocketPair && toCall <= bb * 3) {
-        // ポケットペアはセットマイン
-        fold_percentage = 40;
-        call_percentage = 55;
-        raise_percentage = 5;
-        reasoning = [
-          `${handNotation}は${raiserPosition}のオープンに対してセットマイン候補です。`,
-          `${raiserPosition}のオープンレンジ${OPEN_RANGES[raiserPosition]}%に対してコールできます。`,
-          `スタック対ポット比（SPR）が十分あればインプライドオッズでコール可能です。`,
-          'ただし、セットを引けなければポストフロップで難しくなります。'
-        ];
-      } else {
-        fold_percentage = 70;
-        call_percentage = 25;
-        raise_percentage = 5;
-        reasoning = [
-          `${handNotation}は${raiserPosition}のオープンに対してフォールド寄りです。`,
-          `${raiserPosition}のレンジ${OPEN_RANGES[raiserPosition]}%にドミネートされやすいです。`,
-          `ポットオッズ${potOdds}%が良ければコールも検討できます。`,
-          'コールしてもポストフロップが難しくなることが多いです。'
-        ];
+    if (actions.call > 0) {
+      reasoning.push(`${actions.call}%の頻度でコールが推奨されます。`);
+      if (handNotation.length === 2) {
+        reasoning.push('ポケットペアはセットマインでコールが有効です。');
       }
     }
+    if (actions.fold > 0 && actions.fold >= 50) {
+      reasoning.push(`${handNotation}は${openerPosition}のレンジに対してエクイティが不足しています。`);
+      reasoning.push(`${actions.fold}%の頻度でフォールドが推奨されます。`);
+    }
   }
-  // 弱いハンド
-  else {
-    if (!hasRaise && (position === 'CO' || position === 'BTN')) {
-      fold_percentage = 65;
-      call_percentage = 0;
-      raise_percentage = 35;
-      raise_size = Math.round(bb * 2.5);
+
+  // レイズサイズの推奨
+  let raise_size_description = null;
+  let raise_reasoning = null;
+
+  if (actions.raise > 0) {
+    if (situation === 'RFI') {
       raise_size_description = '2.5BB';
-      reasoning = [
-        `${handNotation}は基本フォールドですが、スチール狙いも可能です。`,
-        `${position}からブラインドがタイトならスチール成功率が高いです。`,
-        'バランスのために時々オープンに混ぜます。',
-        '3betされたら即フォールドです。'
-      ];
-      raise_reasoning = 'スチール目的の最小サイズ。';
+      raise_reasoning = '標準的なオープンサイズです。';
     } else {
-      fold_percentage = 100;
-      call_percentage = 0;
-      raise_percentage = 0;
-      reasoning = [
-        `${handNotation}はフォールドが正解です。`,
-        'このハンドで参加しても期待値はマイナスです。',
-        hasRaise
-          ? `${raiserPosition}のオープンに対してコールするエクイティがありません。`
-          : 'ポストフロップでのプレイアビリティが低いです。',
-        '次のハンドでより良いスポットを待ちましょう。'
-      ];
+      const openerAmount = gameState.firstRaiserAmount || bb * 2.5;
+      const threeBetSize = Math.round(openerAmount * 3);
+      raise_size_description = `${(threeBetSize / bb).toFixed(1)}BB (3x)`;
+      raise_reasoning = `${openerPosition}のオープンに対する標準的な3betサイズです。`;
     }
   }
 
   return {
-    fold_percentage,
-    call_percentage,
-    raise_percentage,
-    raise_size: raise_size || null,
-    raise_size_description: raise_size_description || null,
-    raise_reasoning: raise_reasoning || null,
+    fold_percentage: actions.fold,
+    call_percentage: actions.call,
+    raise_percentage: actions.raise,
+    raise_size_description,
+    raise_reasoning,
     situation_analysis,
     reasoning,
     hand_notation: handNotation,
-    pot_odds: potOdds,
-    amount_to_call: toCall
+    situation: situationDescription,
+    pot_odds: gameState.currentBet > hero.currentBet
+      ? ((gameState.currentBet - hero.currentBet) / (gameState.pot + gameState.currentBet - hero.currentBet) * 100).toFixed(1)
+      : 0,
+    amount_to_call: gameState.currentBet - hero.currentBet
   };
 }
+
+// ============================================
+// HTTPサーバー
+// ============================================
 
 const server = http.createServer((req, res) => {
   res.setHeader('Access-Control-Allow-Origin', '*');
@@ -751,6 +1224,24 @@ const server = http.createServer((req, res) => {
   // 新しいゲームを開始
   if (url === '/api/game/new' && req.method === 'POST') {
     const game = createGame();
+    res.writeHead(200, { 'Content-Type': 'application/json' });
+    res.end(JSON.stringify({
+      success: true,
+      game,
+      pendingActionsCount: game.pendingAIActions.length
+    }));
+    return;
+  }
+
+  // 次のハンドへ（BTNローテーション）
+  if (url === '/api/game/next-hand' && req.method === 'POST') {
+    if (!gameState) {
+      res.writeHead(400, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ error: 'No game in progress' }));
+      return;
+    }
+
+    const game = nextHand();
     res.writeHead(200, { 'Content-Type': 'application/json' });
     res.end(JSON.stringify({
       success: true,
@@ -790,43 +1281,14 @@ const server = http.createServer((req, res) => {
       // ヒーローのアクションを実行
       executeAction(hero, action, amount);
 
-      // ハンド終了チェック
-      if (checkHandComplete()) {
-        gameState.isHandComplete = true;
-        res.writeHead(200, { 'Content-Type': 'application/json' });
-        res.end(JSON.stringify({
-          success: true,
-          game: gameState,
-          handComplete: true,
-          winners: [{ playerId: hero.id, amount: gameState.pot }]
-        }));
-        return;
-      }
-
-      // 次のプレイヤーへ
-      gameState.currentPlayerIndex = (gameState.currentPlayerIndex + 1) % 6;
-
-      // ストリート終了チェック
-      const allActed = gameState.players.every(p =>
-        p.isFolded || p.isAllIn || p.hasActed
-      );
-      const betsEqual = gameState.players
-        .filter(p => !p.isFolded && !p.isAllIn)
-        .every(p => p.currentBet === gameState.currentBet);
-
-      if (allActed && betsEqual) {
-        advanceStreet();
-      } else {
-        // AIアクションを事前計算
-        calculatePendingAIActions();
-      }
+      // ハンド終了チェック（プリフロップ専用なので、アクション完了=ハンド終了）
+      gameState.isHandComplete = true;
 
       res.writeHead(200, { 'Content-Type': 'application/json' });
       res.end(JSON.stringify({
         success: true,
         game: gameState,
-        pendingActionsCount: gameState.pendingAIActions.length,
-        handComplete: gameState.isHandComplete
+        handComplete: true
       }));
     });
     return;
@@ -845,5 +1307,5 @@ const server = http.createServer((req, res) => {
 });
 
 server.listen(3001, () => {
-  console.log('🃏 GTO Poker Server v2 running on http://localhost:3001');
+  console.log('🃏 GTO Poker Server v3 (Preflop Only) running on http://localhost:3001');
 });
