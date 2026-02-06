@@ -47,6 +47,12 @@
             gap: 10px;
         }
 
+        .header-right {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
         .toggle-btn {
             padding: 6px 12px;
             border-radius: 6px;
@@ -333,34 +339,41 @@
         }
 
         .action-btn {
-            padding: 8px 20px;
-            border-radius: 6px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            width: 100px;
+            height: 70px;
+            border-radius: 10px;
             font-weight: bold;
-            font-size: 13px;
+            font-size: 15px;
             color: white;
             cursor: pointer;
-            border: none;
+            border: 2px solid;
             transition: all 0.15s;
         }
         .action-btn:hover { transform: scale(1.03); filter: brightness(1.1); }
         .action-btn:disabled { opacity: 0.4; cursor: not-allowed; transform: none; }
-        .btn-fold { background: linear-gradient(to bottom, #6b7280, #4b5563); }
-        .btn-check { background: linear-gradient(to bottom, #6b7280, #4b5563); }
-        .btn-call { background: linear-gradient(to bottom, #22c55e, #16a34a); }
-        .btn-raise { background: linear-gradient(to bottom, #f59e0b, #d97706); }
+        .action-btn .amount { color: #fbbf24; font-size: 13px; margin-top: 2px; font-weight: 600; }
+        .btn-fold { background: #6b7280; border-color: #9ca3af; }
+        .btn-check { background: #6b7280; border-color: #9ca3af; }
+        .btn-call { background: #16a34a; border-color: #22c55e; }
+        .btn-raise { background: #ea580c; border-color: #f97316; }
 
         .size-btn {
-            padding: 5px 10px;
-            border-radius: 5px;
-            font-size: 11px;
+            padding: 10px 14px;
+            border-radius: 8px;
+            font-size: 13px;
             font-weight: bold;
-            color: white;
-            background: #374151;
-            border: none;
+            color: #fbbf24;
+            background: #854d0e;
+            border: 2px solid #a16207;
             cursor: pointer;
+            transition: all 0.15s;
         }
-        .size-btn:hover { background: #4b5563; }
-        .size-btn.allin { background: #dc2626; }
+        .size-btn:hover { filter: brightness(1.15); }
+        .size-btn.active { background: #ca8a04; border-color: #fbbf24; color: #1a1a2e; }
 
         .bet-slider {
             width: 160px;
@@ -1347,34 +1360,25 @@
                     {/* ヘッダー */}
                     <header className="header">
                         <div className="header-left">
-                            <span className="text-xl font-bold">♠</span>
-                            <h1 className="text-white font-bold">GTO Poker Trainer</h1>
-                            <span className="text-yellow-400 text-sm font-bold">
-                                Hand #{game?.handNumber || 1}
-                            </span>
-                            <span className="text-gray-400 text-sm">
-                                SB/BB: {game?.blinds?.sb || 50}/{game?.blinds?.bb || 100}
-                            </span>
-                        </div>
-                        <div className="header-center">
                             <button
                                 className={`toggle-btn ${showRangePanel ? 'active' : 'inactive'}`}
                                 onClick={() => setShowRangePanel(!showRangePanel)}
                             >
-                                レンジ
+                                {showRangePanel ? 'レンジ表 ✕' : 'レンジ表 ○'}
                             </button>
+                        </div>
+                        <div className="header-center">
+                            <span className="text-gray-400 text-sm">GTO Trainer</span>
+                            <span className="text-gray-500 text-sm">
+                                SB/BB: {game?.blinds?.sb || 50}/{game?.blinds?.bb || 100}
+                            </span>
+                        </div>
+                        <div className="header-right">
                             <button
                                 className={`toggle-btn ${showGTOPanel ? 'active' : 'inactive'}`}
                                 onClick={() => setShowGTOPanel(!showGTOPanel)}
                             >
-                                GTO
-                            </button>
-                            <button
-                                onClick={startNewGame}
-                                className="bg-blue-600 text-white px-4 py-1.5 rounded text-sm font-medium hover:bg-blue-700 ml-2"
-                                disabled={isLoading || isProcessingAI}
-                            >
-                                新しいハンド
+                                {showGTOPanel ? 'GTO推奨 ✕' : 'GTO推奨 ○'}
                             </button>
                         </div>
                     </header>
@@ -1459,38 +1463,35 @@
                                     <>
                                         <div className="action-row">
                                             <button className="action-btn btn-fold" onClick={() => performAction('fold')} disabled={isLoading}>
-                                                フォールド
+                                                <span>フォールド</span>
                                             </button>
                                             <button
                                                 className={`action-btn ${toCall === 0 ? 'btn-check' : 'btn-call'}`}
                                                 onClick={() => performAction(toCall === 0 ? 'check' : 'call')}
                                                 disabled={isLoading}
                                             >
-                                                {toCall === 0 ? 'チェック' : `コール ${toCall}`}
+                                                <span>{toCall === 0 ? 'チェック' : 'コール'}</span>
+                                                {toCall > 0 && <span className="amount">{toCall}</span>}
                                             </button>
                                             <button className="action-btn btn-raise" onClick={() => performAction('raise', betAmount)} disabled={isLoading}>
-                                                レイズ {betAmount}
+                                                <span>レイズ</span>
+                                                <span className="amount">{betAmount}</span>
                                             </button>
-                                        </div>
-                                        <div className="action-row">
-                                            <button className="size-btn" onClick={() => setBetAmount(Math.floor(pot / 3))}>1/3</button>
-                                            <button className="size-btn" onClick={() => setBetAmount(Math.floor(pot * 2 / 3))}>2/3</button>
-                                            <button className="size-btn" onClick={() => setBetAmount(pot)}>Pot</button>
-                                            <button className="size-btn allin" onClick={() => setBetAmount(hero?.stack || 0)}>All-in</button>
-                                            <input
-                                                type="range"
-                                                className="bet-slider"
-                                                min={minRaise}
-                                                max={hero?.stack || 10000}
-                                                value={betAmount}
-                                                onChange={(e) => setBetAmount(Number(e.target.value))}
-                                            />
-                                            <input
-                                                type="number"
-                                                className="bet-input"
-                                                value={betAmount}
-                                                onChange={(e) => setBetAmount(Number(e.target.value))}
-                                            />
+                                            <div style={{display: 'flex', gap: '6px', marginLeft: '8px'}}>
+                                                {[{label: '2x', mult: 2}, {label: '3x', mult: 3}, {label: '4x', mult: 4}, {label: 'ALL', mult: 'ALL'}].map(({label, mult}) => {
+                                                    const amt = mult === 'ALL' ? (hero?.stack || 0) : Math.min((game?.currentBet > (game?.blinds?.bb || 100) ? game.currentBet : (game?.blinds?.bb || 100)) * mult, hero?.stack || 0);
+                                                    const isActive = betAmount === amt;
+                                                    return (
+                                                        <button
+                                                            key={label}
+                                                            className={`size-btn ${isActive ? 'active' : ''}`}
+                                                            onClick={() => setBetAmount(amt)}
+                                                        >
+                                                            {label}
+                                                        </button>
+                                                    );
+                                                })}
+                                            </div>
                                         </div>
                                     </>
                                 ) : (
