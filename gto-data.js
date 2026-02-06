@@ -1019,6 +1019,412 @@ export const BB_VS_CO_OPEN = {
 };
 
 // ============================================
+// BB vs HJ Open レンジ
+// HJオープンレンジは21%程度。BBは35-38%ディフェンス
+// COよりタイトにディフェンス
+// ============================================
+
+export const BB_VS_HJ_OPEN = {
+  // ポケットペア
+  'AA': { fold: 0, call: 0, raise: 100 },
+  'KK': { fold: 0, call: 0, raise: 100 },
+  'QQ': { fold: 0, call: 0, raise: 100 },
+  'JJ': { fold: 0, call: 10, raise: 90 },
+  'TT': { fold: 0, call: 30, raise: 70 },
+  '99': { fold: 5, call: 50, raise: 45 },
+  '88': { fold: 10, call: 60, raise: 30 },
+  '77': { fold: 20, call: 60, raise: 20 },
+  '66': { fold: 30, call: 55, raise: 15 },
+  '55': { fold: 45, call: 45, raise: 10 },
+  '44': { fold: 55, call: 35, raise: 10 },
+  '33': { fold: 65, call: 25, raise: 10 },
+  '22': { fold: 75, call: 15, raise: 10 },
+
+  // Ax スーテッド
+  'AKs': { fold: 0, call: 0, raise: 100 },
+  'AQs': { fold: 0, call: 10, raise: 90 },
+  'AJs': { fold: 0, call: 30, raise: 70 },
+  'ATs': { fold: 5, call: 45, raise: 50 },
+  'A9s': { fold: 15, call: 55, raise: 30 },
+  'A8s': { fold: 25, call: 55, raise: 20 },
+  'A7s': { fold: 30, call: 50, raise: 20 },
+  'A6s': { fold: 40, call: 45, raise: 15 },
+  'A5s': { fold: 20, call: 40, raise: 40 },
+  'A4s': { fold: 30, call: 45, raise: 25 },
+  'A3s': { fold: 40, call: 45, raise: 15 },
+  'A2s': { fold: 50, call: 40, raise: 10 },
+
+  // Ax オフスート
+  'AKo': { fold: 0, call: 0, raise: 100 },
+  'AQo': { fold: 0, call: 30, raise: 70 },
+  'AJo': { fold: 15, call: 50, raise: 35 },
+  'ATo': { fold: 30, call: 55, raise: 15 },
+  'A9o': { fold: 55, call: 40, raise: 5 },
+  'A8o': { fold: 70, call: 25, raise: 5 },
+  'A7o': { fold: 80, call: 15, raise: 5 },
+  'A6o': { fold: 90, call: 5, raise: 5 },
+  'A5o': { fold: 85, call: 10, raise: 5 },
+  'A4o': { fold: 95, call: 0, raise: 5 },
+  'A3o': { fold: 100, call: 0, raise: 0 },
+  'A2o': { fold: 100, call: 0, raise: 0 },
+
+  // Kx スーテッド
+  'KQs': { fold: 0, call: 25, raise: 75 },
+  'KJs': { fold: 10, call: 45, raise: 45 },
+  'KTs': { fold: 20, call: 50, raise: 30 },
+  'K9s': { fold: 40, call: 45, raise: 15 },
+  'K8s': { fold: 60, call: 30, raise: 10 },
+  'K7s': { fold: 75, call: 15, raise: 10 },
+  'K6s': { fold: 85, call: 5, raise: 10 },
+  'K5s': { fold: 95, call: 0, raise: 5 },
+  'K4s': { fold: 100, call: 0, raise: 0 },
+  'K3s': { fold: 100, call: 0, raise: 0 },
+  'K2s': { fold: 100, call: 0, raise: 0 },
+
+  // Kx オフスート
+  'KQo': { fold: 15, call: 45, raise: 40 },
+  'KJo': { fold: 35, call: 50, raise: 15 },
+  'KTo': { fold: 55, call: 40, raise: 5 },
+  'K9o': { fold: 80, call: 15, raise: 5 },
+  'K8o': { fold: 100, call: 0, raise: 0 },
+  'K7o': { fold: 100, call: 0, raise: 0 },
+  'K6o': { fold: 100, call: 0, raise: 0 },
+  'K5o': { fold: 100, call: 0, raise: 0 },
+  'K4o': { fold: 100, call: 0, raise: 0 },
+  'K3o': { fold: 100, call: 0, raise: 0 },
+  'K2o': { fold: 100, call: 0, raise: 0 },
+
+  // Qx スーテッド
+  'QJs': { fold: 10, call: 45, raise: 45 },
+  'QTs': { fold: 25, call: 50, raise: 25 },
+  'Q9s': { fold: 45, call: 45, raise: 10 },
+  'Q8s': { fold: 70, call: 20, raise: 10 },
+  'Q7s': { fold: 90, call: 0, raise: 10 },
+  'Q6s': { fold: 100, call: 0, raise: 0 },
+  'Q5s': { fold: 100, call: 0, raise: 0 },
+  'Q4s': { fold: 100, call: 0, raise: 0 },
+  'Q3s': { fold: 100, call: 0, raise: 0 },
+  'Q2s': { fold: 100, call: 0, raise: 0 },
+
+  // Qx オフスート
+  'QJo': { fold: 45, call: 45, raise: 10 },
+  'QTo': { fold: 70, call: 25, raise: 5 },
+  'Q9o': { fold: 95, call: 0, raise: 5 },
+  'Q8o': { fold: 100, call: 0, raise: 0 },
+  'Q7o': { fold: 100, call: 0, raise: 0 },
+  'Q6o': { fold: 100, call: 0, raise: 0 },
+  'Q5o': { fold: 100, call: 0, raise: 0 },
+  'Q4o': { fold: 100, call: 0, raise: 0 },
+  'Q3o': { fold: 100, call: 0, raise: 0 },
+  'Q2o': { fold: 100, call: 0, raise: 0 },
+
+  // Jx スーテッド
+  'JTs': { fold: 15, call: 45, raise: 40 },
+  'J9s': { fold: 40, call: 45, raise: 15 },
+  'J8s': { fold: 65, call: 25, raise: 10 },
+  'J7s': { fold: 90, call: 0, raise: 10 },
+  'J6s': { fold: 100, call: 0, raise: 0 },
+  'J5s': { fold: 100, call: 0, raise: 0 },
+  'J4s': { fold: 100, call: 0, raise: 0 },
+  'J3s': { fold: 100, call: 0, raise: 0 },
+  'J2s': { fold: 100, call: 0, raise: 0 },
+
+  // Jx オフスート
+  'JTo': { fold: 55, call: 35, raise: 10 },
+  'J9o': { fold: 85, call: 10, raise: 5 },
+  'J8o': { fold: 100, call: 0, raise: 0 },
+  'J7o': { fold: 100, call: 0, raise: 0 },
+  'J6o': { fold: 100, call: 0, raise: 0 },
+  'J5o': { fold: 100, call: 0, raise: 0 },
+  'J4o': { fold: 100, call: 0, raise: 0 },
+  'J3o': { fold: 100, call: 0, raise: 0 },
+  'J2o': { fold: 100, call: 0, raise: 0 },
+
+  // Tx スーテッド
+  'T9s': { fold: 25, call: 45, raise: 30 },
+  'T8s': { fold: 50, call: 35, raise: 15 },
+  'T7s': { fold: 75, call: 15, raise: 10 },
+  'T6s': { fold: 100, call: 0, raise: 0 },
+  'T5s': { fold: 100, call: 0, raise: 0 },
+  'T4s': { fold: 100, call: 0, raise: 0 },
+  'T3s': { fold: 100, call: 0, raise: 0 },
+  'T2s': { fold: 100, call: 0, raise: 0 },
+
+  // Tx オフスート
+  'T9o': { fold: 65, call: 25, raise: 10 },
+  'T8o': { fold: 95, call: 0, raise: 5 },
+  'T7o': { fold: 100, call: 0, raise: 0 },
+  'T6o': { fold: 100, call: 0, raise: 0 },
+  'T5o': { fold: 100, call: 0, raise: 0 },
+  'T4o': { fold: 100, call: 0, raise: 0 },
+  'T3o': { fold: 100, call: 0, raise: 0 },
+  'T2o': { fold: 100, call: 0, raise: 0 },
+
+  // コネクター系 スーテッド
+  '98s': { fold: 35, call: 40, raise: 25 },
+  '97s': { fold: 60, call: 25, raise: 15 },
+  '96s': { fold: 90, call: 0, raise: 10 },
+  '95s': { fold: 100, call: 0, raise: 0 },
+  '94s': { fold: 100, call: 0, raise: 0 },
+  '93s': { fold: 100, call: 0, raise: 0 },
+  '92s': { fold: 100, call: 0, raise: 0 },
+  '87s': { fold: 40, call: 35, raise: 25 },
+  '86s': { fold: 65, call: 20, raise: 15 },
+  '85s': { fold: 95, call: 0, raise: 5 },
+  '84s': { fold: 100, call: 0, raise: 0 },
+  '83s': { fold: 100, call: 0, raise: 0 },
+  '82s': { fold: 100, call: 0, raise: 0 },
+  '76s': { fold: 45, call: 30, raise: 25 },
+  '75s': { fold: 75, call: 10, raise: 15 },
+  '74s': { fold: 100, call: 0, raise: 0 },
+  '73s': { fold: 100, call: 0, raise: 0 },
+  '72s': { fold: 100, call: 0, raise: 0 },
+  '65s': { fold: 55, call: 20, raise: 25 },
+  '64s': { fold: 85, call: 0, raise: 15 },
+  '63s': { fold: 100, call: 0, raise: 0 },
+  '62s': { fold: 100, call: 0, raise: 0 },
+  '54s': { fold: 65, call: 10, raise: 25 },
+  '53s': { fold: 95, call: 0, raise: 5 },
+  '52s': { fold: 100, call: 0, raise: 0 },
+  '43s': { fold: 100, call: 0, raise: 0 },
+  '42s': { fold: 100, call: 0, raise: 0 },
+  '32s': { fold: 100, call: 0, raise: 0 },
+
+  // コネクター系 オフスート - ほぼ全てフォールド
+  '98o': { fold: 80, call: 10, raise: 10 },
+  '97o': { fold: 100, call: 0, raise: 0 },
+  '96o': { fold: 100, call: 0, raise: 0 },
+  '95o': { fold: 100, call: 0, raise: 0 },
+  '94o': { fold: 100, call: 0, raise: 0 },
+  '93o': { fold: 100, call: 0, raise: 0 },
+  '92o': { fold: 100, call: 0, raise: 0 },
+  '87o': { fold: 90, call: 0, raise: 10 },
+  '86o': { fold: 100, call: 0, raise: 0 },
+  '85o': { fold: 100, call: 0, raise: 0 },
+  '84o': { fold: 100, call: 0, raise: 0 },
+  '83o': { fold: 100, call: 0, raise: 0 },
+  '82o': { fold: 100, call: 0, raise: 0 },
+  '76o': { fold: 100, call: 0, raise: 0 },
+  '75o': { fold: 100, call: 0, raise: 0 },
+  '74o': { fold: 100, call: 0, raise: 0 },
+  '73o': { fold: 100, call: 0, raise: 0 },
+  '72o': { fold: 100, call: 0, raise: 0 },
+  '65o': { fold: 100, call: 0, raise: 0 },
+  '64o': { fold: 100, call: 0, raise: 0 },
+  '63o': { fold: 100, call: 0, raise: 0 },
+  '62o': { fold: 100, call: 0, raise: 0 },
+  '54o': { fold: 100, call: 0, raise: 0 },
+  '53o': { fold: 100, call: 0, raise: 0 },
+  '52o': { fold: 100, call: 0, raise: 0 },
+  '43o': { fold: 100, call: 0, raise: 0 },
+  '42o': { fold: 100, call: 0, raise: 0 },
+  '32o': { fold: 100, call: 0, raise: 0 },
+};
+
+// ============================================
+// BB vs UTG Open レンジ
+// UTGオープンレンジは17%程度。BBは28-32%ディフェンス
+// 最もタイトなディフェンス
+// ============================================
+
+export const BB_VS_UTG_OPEN = {
+  // ポケットペア
+  'AA': { fold: 0, call: 0, raise: 100 },
+  'KK': { fold: 0, call: 0, raise: 100 },
+  'QQ': { fold: 0, call: 0, raise: 100 },
+  'JJ': { fold: 0, call: 5, raise: 95 },
+  'TT': { fold: 0, call: 25, raise: 75 },
+  '99': { fold: 10, call: 50, raise: 40 },
+  '88': { fold: 20, call: 55, raise: 25 },
+  '77': { fold: 35, call: 50, raise: 15 },
+  '66': { fold: 50, call: 40, raise: 10 },
+  '55': { fold: 60, call: 30, raise: 10 },
+  '44': { fold: 70, call: 20, raise: 10 },
+  '33': { fold: 80, call: 10, raise: 10 },
+  '22': { fold: 90, call: 0, raise: 10 },
+
+  // Ax スーテッド
+  'AKs': { fold: 0, call: 0, raise: 100 },
+  'AQs': { fold: 0, call: 5, raise: 95 },
+  'AJs': { fold: 0, call: 25, raise: 75 },
+  'ATs': { fold: 10, call: 40, raise: 50 },
+  'A9s': { fold: 30, call: 45, raise: 25 },
+  'A8s': { fold: 40, call: 45, raise: 15 },
+  'A7s': { fold: 50, call: 40, raise: 10 },
+  'A6s': { fold: 60, call: 30, raise: 10 },
+  'A5s': { fold: 35, call: 30, raise: 35 },
+  'A4s': { fold: 50, call: 30, raise: 20 },
+  'A3s': { fold: 60, call: 30, raise: 10 },
+  'A2s': { fold: 70, call: 20, raise: 10 },
+
+  // Ax オフスート
+  'AKo': { fold: 0, call: 0, raise: 100 },
+  'AQo': { fold: 5, call: 25, raise: 70 },
+  'AJo': { fold: 25, call: 45, raise: 30 },
+  'ATo': { fold: 45, call: 45, raise: 10 },
+  'A9o': { fold: 70, call: 25, raise: 5 },
+  'A8o': { fold: 85, call: 10, raise: 5 },
+  'A7o': { fold: 95, call: 0, raise: 5 },
+  'A6o': { fold: 100, call: 0, raise: 0 },
+  'A5o': { fold: 100, call: 0, raise: 0 },
+  'A4o': { fold: 100, call: 0, raise: 0 },
+  'A3o': { fold: 100, call: 0, raise: 0 },
+  'A2o': { fold: 100, call: 0, raise: 0 },
+
+  // Kx スーテッド
+  'KQs': { fold: 0, call: 20, raise: 80 },
+  'KJs': { fold: 15, call: 40, raise: 45 },
+  'KTs': { fold: 30, call: 45, raise: 25 },
+  'K9s': { fold: 55, call: 35, raise: 10 },
+  'K8s': { fold: 80, call: 10, raise: 10 },
+  'K7s': { fold: 95, call: 0, raise: 5 },
+  'K6s': { fold: 100, call: 0, raise: 0 },
+  'K5s': { fold: 100, call: 0, raise: 0 },
+  'K4s': { fold: 100, call: 0, raise: 0 },
+  'K3s': { fold: 100, call: 0, raise: 0 },
+  'K2s': { fold: 100, call: 0, raise: 0 },
+
+  // Kx オフスート
+  'KQo': { fold: 20, call: 40, raise: 40 },
+  'KJo': { fold: 50, call: 40, raise: 10 },
+  'KTo': { fold: 75, call: 20, raise: 5 },
+  'K9o': { fold: 100, call: 0, raise: 0 },
+  'K8o': { fold: 100, call: 0, raise: 0 },
+  'K7o': { fold: 100, call: 0, raise: 0 },
+  'K6o': { fold: 100, call: 0, raise: 0 },
+  'K5o': { fold: 100, call: 0, raise: 0 },
+  'K4o': { fold: 100, call: 0, raise: 0 },
+  'K3o': { fold: 100, call: 0, raise: 0 },
+  'K2o': { fold: 100, call: 0, raise: 0 },
+
+  // Qx スーテッド
+  'QJs': { fold: 20, call: 40, raise: 40 },
+  'QTs': { fold: 40, call: 40, raise: 20 },
+  'Q9s': { fold: 65, call: 25, raise: 10 },
+  'Q8s': { fold: 90, call: 0, raise: 10 },
+  'Q7s': { fold: 100, call: 0, raise: 0 },
+  'Q6s': { fold: 100, call: 0, raise: 0 },
+  'Q5s': { fold: 100, call: 0, raise: 0 },
+  'Q4s': { fold: 100, call: 0, raise: 0 },
+  'Q3s': { fold: 100, call: 0, raise: 0 },
+  'Q2s': { fold: 100, call: 0, raise: 0 },
+
+  // Qx オフスート
+  'QJo': { fold: 60, call: 30, raise: 10 },
+  'QTo': { fold: 85, call: 10, raise: 5 },
+  'Q9o': { fold: 100, call: 0, raise: 0 },
+  'Q8o': { fold: 100, call: 0, raise: 0 },
+  'Q7o': { fold: 100, call: 0, raise: 0 },
+  'Q6o': { fold: 100, call: 0, raise: 0 },
+  'Q5o': { fold: 100, call: 0, raise: 0 },
+  'Q4o': { fold: 100, call: 0, raise: 0 },
+  'Q3o': { fold: 100, call: 0, raise: 0 },
+  'Q2o': { fold: 100, call: 0, raise: 0 },
+
+  // Jx スーテッド
+  'JTs': { fold: 25, call: 40, raise: 35 },
+  'J9s': { fold: 55, call: 30, raise: 15 },
+  'J8s': { fold: 80, call: 10, raise: 10 },
+  'J7s': { fold: 100, call: 0, raise: 0 },
+  'J6s': { fold: 100, call: 0, raise: 0 },
+  'J5s': { fold: 100, call: 0, raise: 0 },
+  'J4s': { fold: 100, call: 0, raise: 0 },
+  'J3s': { fold: 100, call: 0, raise: 0 },
+  'J2s': { fold: 100, call: 0, raise: 0 },
+
+  // Jx オフスート
+  'JTo': { fold: 70, call: 20, raise: 10 },
+  'J9o': { fold: 100, call: 0, raise: 0 },
+  'J8o': { fold: 100, call: 0, raise: 0 },
+  'J7o': { fold: 100, call: 0, raise: 0 },
+  'J6o': { fold: 100, call: 0, raise: 0 },
+  'J5o': { fold: 100, call: 0, raise: 0 },
+  'J4o': { fold: 100, call: 0, raise: 0 },
+  'J3o': { fold: 100, call: 0, raise: 0 },
+  'J2o': { fold: 100, call: 0, raise: 0 },
+
+  // Tx スーテッド
+  'T9s': { fold: 40, call: 35, raise: 25 },
+  'T8s': { fold: 70, call: 15, raise: 15 },
+  'T7s': { fold: 95, call: 0, raise: 5 },
+  'T6s': { fold: 100, call: 0, raise: 0 },
+  'T5s': { fold: 100, call: 0, raise: 0 },
+  'T4s': { fold: 100, call: 0, raise: 0 },
+  'T3s': { fold: 100, call: 0, raise: 0 },
+  'T2s': { fold: 100, call: 0, raise: 0 },
+
+  // Tx オフスート
+  'T9o': { fold: 85, call: 5, raise: 10 },
+  'T8o': { fold: 100, call: 0, raise: 0 },
+  'T7o': { fold: 100, call: 0, raise: 0 },
+  'T6o': { fold: 100, call: 0, raise: 0 },
+  'T5o': { fold: 100, call: 0, raise: 0 },
+  'T4o': { fold: 100, call: 0, raise: 0 },
+  'T3o': { fold: 100, call: 0, raise: 0 },
+  'T2o': { fold: 100, call: 0, raise: 0 },
+
+  // コネクター系 スーテッド
+  '98s': { fold: 55, call: 25, raise: 20 },
+  '97s': { fold: 80, call: 5, raise: 15 },
+  '96s': { fold: 100, call: 0, raise: 0 },
+  '95s': { fold: 100, call: 0, raise: 0 },
+  '94s': { fold: 100, call: 0, raise: 0 },
+  '93s': { fold: 100, call: 0, raise: 0 },
+  '92s': { fold: 100, call: 0, raise: 0 },
+  '87s': { fold: 60, call: 20, raise: 20 },
+  '86s': { fold: 85, call: 0, raise: 15 },
+  '85s': { fold: 100, call: 0, raise: 0 },
+  '84s': { fold: 100, call: 0, raise: 0 },
+  '83s': { fold: 100, call: 0, raise: 0 },
+  '82s': { fold: 100, call: 0, raise: 0 },
+  '76s': { fold: 65, call: 15, raise: 20 },
+  '75s': { fold: 95, call: 0, raise: 5 },
+  '74s': { fold: 100, call: 0, raise: 0 },
+  '73s': { fold: 100, call: 0, raise: 0 },
+  '72s': { fold: 100, call: 0, raise: 0 },
+  '65s': { fold: 75, call: 5, raise: 20 },
+  '64s': { fold: 100, call: 0, raise: 0 },
+  '63s': { fold: 100, call: 0, raise: 0 },
+  '62s': { fold: 100, call: 0, raise: 0 },
+  '54s': { fold: 80, call: 0, raise: 20 },
+  '53s': { fold: 100, call: 0, raise: 0 },
+  '52s': { fold: 100, call: 0, raise: 0 },
+  '43s': { fold: 100, call: 0, raise: 0 },
+  '42s': { fold: 100, call: 0, raise: 0 },
+  '32s': { fold: 100, call: 0, raise: 0 },
+
+  // コネクター系 オフスート - 全てフォールド
+  '98o': { fold: 100, call: 0, raise: 0 },
+  '97o': { fold: 100, call: 0, raise: 0 },
+  '96o': { fold: 100, call: 0, raise: 0 },
+  '95o': { fold: 100, call: 0, raise: 0 },
+  '94o': { fold: 100, call: 0, raise: 0 },
+  '93o': { fold: 100, call: 0, raise: 0 },
+  '92o': { fold: 100, call: 0, raise: 0 },
+  '87o': { fold: 100, call: 0, raise: 0 },
+  '86o': { fold: 100, call: 0, raise: 0 },
+  '85o': { fold: 100, call: 0, raise: 0 },
+  '84o': { fold: 100, call: 0, raise: 0 },
+  '83o': { fold: 100, call: 0, raise: 0 },
+  '82o': { fold: 100, call: 0, raise: 0 },
+  '76o': { fold: 100, call: 0, raise: 0 },
+  '75o': { fold: 100, call: 0, raise: 0 },
+  '74o': { fold: 100, call: 0, raise: 0 },
+  '73o': { fold: 100, call: 0, raise: 0 },
+  '72o': { fold: 100, call: 0, raise: 0 },
+  '65o': { fold: 100, call: 0, raise: 0 },
+  '64o': { fold: 100, call: 0, raise: 0 },
+  '63o': { fold: 100, call: 0, raise: 0 },
+  '62o': { fold: 100, call: 0, raise: 0 },
+  '54o': { fold: 100, call: 0, raise: 0 },
+  '53o': { fold: 100, call: 0, raise: 0 },
+  '52o': { fold: 100, call: 0, raise: 0 },
+  '43o': { fold: 100, call: 0, raise: 0 },
+  '42o': { fold: 100, call: 0, raise: 0 },
+  '32o': { fold: 100, call: 0, raise: 0 },
+};
+
+// ============================================
 // SB vs BTN Open レンジ
 // BTNオープンは43%。SBは3bet or fold戦略
 // コールはほぼしない（BBにスクイーズされるリスク）
@@ -1222,6 +1628,210 @@ export const SB_VS_BTN_OPEN = {
 };
 
 // ============================================
+// SB vs CO Open レンジ
+// COオープンは32%。SBは3bet or fold戦略
+// コールはほぼしない（BBにスクイーズされるリスク）
+// BTN相手よりもタイト
+// ============================================
+
+export const SB_VS_CO_OPEN = {
+  // ポケットペア - 3bet or fold
+  'AA': { fold: 0, call: 0, raise: 100 },
+  'KK': { fold: 0, call: 0, raise: 100 },
+  'QQ': { fold: 0, call: 0, raise: 100 },
+  'JJ': { fold: 0, call: 0, raise: 100 },
+  'TT': { fold: 0, call: 5, raise: 95 },
+  '99': { fold: 15, call: 5, raise: 80 },
+  '88': { fold: 35, call: 5, raise: 60 },
+  '77': { fold: 55, call: 5, raise: 40 },
+  '66': { fold: 70, call: 0, raise: 30 },
+  '55': { fold: 80, call: 0, raise: 20 },
+  '44': { fold: 90, call: 0, raise: 10 },
+  '33': { fold: 95, call: 0, raise: 5 },
+  '22': { fold: 100, call: 0, raise: 0 },
+
+  // Ax スーテッド - タイトに3bet
+  'AKs': { fold: 0, call: 0, raise: 100 },
+  'AQs': { fold: 0, call: 0, raise: 100 },
+  'AJs': { fold: 0, call: 0, raise: 100 },
+  'ATs': { fold: 5, call: 5, raise: 90 },
+  'A9s': { fold: 25, call: 5, raise: 70 },
+  'A8s': { fold: 40, call: 5, raise: 55 },
+  'A7s': { fold: 50, call: 5, raise: 45 },
+  'A6s': { fold: 60, call: 0, raise: 40 },
+  'A5s': { fold: 20, call: 0, raise: 80 },
+  'A4s': { fold: 35, call: 0, raise: 65 },
+  'A3s': { fold: 55, call: 0, raise: 45 },
+  'A2s': { fold: 70, call: 0, raise: 30 },
+
+  // Ax オフスート
+  'AKo': { fold: 0, call: 0, raise: 100 },
+  'AQo': { fold: 0, call: 0, raise: 100 },
+  'AJo': { fold: 5, call: 5, raise: 90 },
+  'ATo': { fold: 25, call: 5, raise: 70 },
+  'A9o': { fold: 55, call: 5, raise: 40 },
+  'A8o': { fold: 75, call: 0, raise: 25 },
+  'A7o': { fold: 90, call: 0, raise: 10 },
+  'A6o': { fold: 100, call: 0, raise: 0 },
+  'A5o': { fold: 85, call: 0, raise: 15 },
+  'A4o': { fold: 100, call: 0, raise: 0 },
+  'A3o': { fold: 100, call: 0, raise: 0 },
+  'A2o': { fold: 100, call: 0, raise: 0 },
+
+  // Kx スーテッド
+  'KQs': { fold: 0, call: 0, raise: 100 },
+  'KJs': { fold: 5, call: 5, raise: 90 },
+  'KTs': { fold: 20, call: 5, raise: 75 },
+  'K9s': { fold: 50, call: 5, raise: 45 },
+  'K8s': { fold: 75, call: 0, raise: 25 },
+  'K7s': { fold: 90, call: 0, raise: 10 },
+  'K6s': { fold: 100, call: 0, raise: 0 },
+  'K5s': { fold: 100, call: 0, raise: 0 },
+  'K4s': { fold: 100, call: 0, raise: 0 },
+  'K3s': { fold: 100, call: 0, raise: 0 },
+  'K2s': { fold: 100, call: 0, raise: 0 },
+
+  // Kx オフスート
+  'KQo': { fold: 5, call: 5, raise: 90 },
+  'KJo': { fold: 30, call: 5, raise: 65 },
+  'KTo': { fold: 55, call: 5, raise: 40 },
+  'K9o': { fold: 85, call: 0, raise: 15 },
+  'K8o': { fold: 100, call: 0, raise: 0 },
+  'K7o': { fold: 100, call: 0, raise: 0 },
+  'K6o': { fold: 100, call: 0, raise: 0 },
+  'K5o': { fold: 100, call: 0, raise: 0 },
+  'K4o': { fold: 100, call: 0, raise: 0 },
+  'K3o': { fold: 100, call: 0, raise: 0 },
+  'K2o': { fold: 100, call: 0, raise: 0 },
+
+  // Qx スーテッド
+  'QJs': { fold: 10, call: 5, raise: 85 },
+  'QTs': { fold: 30, call: 5, raise: 65 },
+  'Q9s': { fold: 60, call: 5, raise: 35 },
+  'Q8s': { fold: 85, call: 0, raise: 15 },
+  'Q7s': { fold: 100, call: 0, raise: 0 },
+  'Q6s': { fold: 100, call: 0, raise: 0 },
+  'Q5s': { fold: 100, call: 0, raise: 0 },
+  'Q4s': { fold: 100, call: 0, raise: 0 },
+  'Q3s': { fold: 100, call: 0, raise: 0 },
+  'Q2s': { fold: 100, call: 0, raise: 0 },
+
+  // Qx オフスート
+  'QJo': { fold: 45, call: 5, raise: 50 },
+  'QTo': { fold: 70, call: 5, raise: 25 },
+  'Q9o': { fold: 100, call: 0, raise: 0 },
+  'Q8o': { fold: 100, call: 0, raise: 0 },
+  'Q7o': { fold: 100, call: 0, raise: 0 },
+  'Q6o': { fold: 100, call: 0, raise: 0 },
+  'Q5o': { fold: 100, call: 0, raise: 0 },
+  'Q4o': { fold: 100, call: 0, raise: 0 },
+  'Q3o': { fold: 100, call: 0, raise: 0 },
+  'Q2o': { fold: 100, call: 0, raise: 0 },
+
+  // Jx スーテッド
+  'JTs': { fold: 25, call: 5, raise: 70 },
+  'J9s': { fold: 55, call: 5, raise: 40 },
+  'J8s': { fold: 85, call: 0, raise: 15 },
+  'J7s': { fold: 100, call: 0, raise: 0 },
+  'J6s': { fold: 100, call: 0, raise: 0 },
+  'J5s': { fold: 100, call: 0, raise: 0 },
+  'J4s': { fold: 100, call: 0, raise: 0 },
+  'J3s': { fold: 100, call: 0, raise: 0 },
+  'J2s': { fold: 100, call: 0, raise: 0 },
+
+  // Jx オフスート
+  'JTo': { fold: 60, call: 5, raise: 35 },
+  'J9o': { fold: 95, call: 0, raise: 5 },
+  'J8o': { fold: 100, call: 0, raise: 0 },
+  'J7o': { fold: 100, call: 0, raise: 0 },
+  'J6o': { fold: 100, call: 0, raise: 0 },
+  'J5o': { fold: 100, call: 0, raise: 0 },
+  'J4o': { fold: 100, call: 0, raise: 0 },
+  'J3o': { fold: 100, call: 0, raise: 0 },
+  'J2o': { fold: 100, call: 0, raise: 0 },
+
+  // Tx スーテッド
+  'T9s': { fold: 45, call: 5, raise: 50 },
+  'T8s': { fold: 75, call: 0, raise: 25 },
+  'T7s': { fold: 95, call: 0, raise: 5 },
+  'T6s': { fold: 100, call: 0, raise: 0 },
+  'T5s': { fold: 100, call: 0, raise: 0 },
+  'T4s': { fold: 100, call: 0, raise: 0 },
+  'T3s': { fold: 100, call: 0, raise: 0 },
+  'T2s': { fold: 100, call: 0, raise: 0 },
+
+  // Tx オフスート
+  'T9o': { fold: 85, call: 0, raise: 15 },
+  'T8o': { fold: 100, call: 0, raise: 0 },
+  'T7o': { fold: 100, call: 0, raise: 0 },
+  'T6o': { fold: 100, call: 0, raise: 0 },
+  'T5o': { fold: 100, call: 0, raise: 0 },
+  'T4o': { fold: 100, call: 0, raise: 0 },
+  'T3o': { fold: 100, call: 0, raise: 0 },
+  'T2o': { fold: 100, call: 0, raise: 0 },
+
+  // コネクター系 スーテッド - 一部3bet
+  '98s': { fold: 55, call: 0, raise: 45 },
+  '97s': { fold: 85, call: 0, raise: 15 },
+  '96s': { fold: 100, call: 0, raise: 0 },
+  '95s': { fold: 100, call: 0, raise: 0 },
+  '94s': { fold: 100, call: 0, raise: 0 },
+  '93s': { fold: 100, call: 0, raise: 0 },
+  '92s': { fold: 100, call: 0, raise: 0 },
+  '87s': { fold: 60, call: 0, raise: 40 },
+  '86s': { fold: 90, call: 0, raise: 10 },
+  '85s': { fold: 100, call: 0, raise: 0 },
+  '84s': { fold: 100, call: 0, raise: 0 },
+  '83s': { fold: 100, call: 0, raise: 0 },
+  '82s': { fold: 100, call: 0, raise: 0 },
+  '76s': { fold: 70, call: 0, raise: 30 },
+  '75s': { fold: 95, call: 0, raise: 5 },
+  '74s': { fold: 100, call: 0, raise: 0 },
+  '73s': { fold: 100, call: 0, raise: 0 },
+  '72s': { fold: 100, call: 0, raise: 0 },
+  '65s': { fold: 75, call: 0, raise: 25 },
+  '64s': { fold: 100, call: 0, raise: 0 },
+  '63s': { fold: 100, call: 0, raise: 0 },
+  '62s': { fold: 100, call: 0, raise: 0 },
+  '54s': { fold: 80, call: 0, raise: 20 },
+  '53s': { fold: 100, call: 0, raise: 0 },
+  '52s': { fold: 100, call: 0, raise: 0 },
+  '43s': { fold: 100, call: 0, raise: 0 },
+  '42s': { fold: 100, call: 0, raise: 0 },
+  '32s': { fold: 100, call: 0, raise: 0 },
+
+  // コネクター系 オフスート - 全てフォールド
+  '98o': { fold: 100, call: 0, raise: 0 },
+  '97o': { fold: 100, call: 0, raise: 0 },
+  '96o': { fold: 100, call: 0, raise: 0 },
+  '95o': { fold: 100, call: 0, raise: 0 },
+  '94o': { fold: 100, call: 0, raise: 0 },
+  '93o': { fold: 100, call: 0, raise: 0 },
+  '92o': { fold: 100, call: 0, raise: 0 },
+  '87o': { fold: 100, call: 0, raise: 0 },
+  '86o': { fold: 100, call: 0, raise: 0 },
+  '85o': { fold: 100, call: 0, raise: 0 },
+  '84o': { fold: 100, call: 0, raise: 0 },
+  '83o': { fold: 100, call: 0, raise: 0 },
+  '82o': { fold: 100, call: 0, raise: 0 },
+  '76o': { fold: 100, call: 0, raise: 0 },
+  '75o': { fold: 100, call: 0, raise: 0 },
+  '74o': { fold: 100, call: 0, raise: 0 },
+  '73o': { fold: 100, call: 0, raise: 0 },
+  '72o': { fold: 100, call: 0, raise: 0 },
+  '65o': { fold: 100, call: 0, raise: 0 },
+  '64o': { fold: 100, call: 0, raise: 0 },
+  '63o': { fold: 100, call: 0, raise: 0 },
+  '62o': { fold: 100, call: 0, raise: 0 },
+  '54o': { fold: 100, call: 0, raise: 0 },
+  '53o': { fold: 100, call: 0, raise: 0 },
+  '52o': { fold: 100, call: 0, raise: 0 },
+  '43o': { fold: 100, call: 0, raise: 0 },
+  '42o': { fold: 100, call: 0, raise: 0 },
+  '32o': { fold: 100, call: 0, raise: 0 },
+};
+
+// ============================================
 // RFIレンジマップ
 // ============================================
 export const RFI_RANGES = {
@@ -1233,13 +1843,16 @@ export const RFI_RANGES = {
 };
 
 // ============================================
-// VS OPENレンジマップ（Phase 2: 高頻出パターン追加）
+// VS OPENレンジマップ（Phase 3: 全パターン追加完了）
 // ============================================
 export const VS_OPEN_RANGES = {
   BB_vs_SB: BB_VS_SB_OPEN,
   BB_vs_BTN: BB_VS_BTN_OPEN,
   BB_vs_CO: BB_VS_CO_OPEN,
-  SB_vs_BTN: SB_VS_BTN_OPEN
+  BB_vs_HJ: BB_VS_HJ_OPEN,
+  BB_vs_UTG: BB_VS_UTG_OPEN,
+  SB_vs_BTN: SB_VS_BTN_OPEN,
+  SB_vs_CO: SB_VS_CO_OPEN
 };
 
 // ============================================
