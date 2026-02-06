@@ -529,15 +529,17 @@ function getGTORecommendation() {
   // レイズサイズの推奨
   let raise_size_description = null;
   let raise_reasoning = null;
+  let recommended_raise_amount = null;
 
   if (actions.raise > 0) {
     if (situation === 'RFI') {
+      recommended_raise_amount = Math.round(bb * 2.5);
       raise_size_description = '2.5BB';
       raise_reasoning = '標準的なオープンサイズです。';
     } else {
       const openerAmount = gameState.firstRaiserAmount || bb * 2.5;
-      const threeBetSize = Math.round(openerAmount * 3);
-      raise_size_description = `${(threeBetSize / bb).toFixed(1)}BB (3x)`;
+      recommended_raise_amount = Math.round(openerAmount * 3);
+      raise_size_description = `${(recommended_raise_amount / bb).toFixed(1)}BB (3x)`;
       raise_reasoning = `${openerPosition}のオープンに対する標準的な3betサイズです。`;
     }
   }
@@ -549,6 +551,7 @@ function getGTORecommendation() {
     raise_percentage: actions.raise,
     raise_size_description,
     raise_reasoning,
+    recommended_raise_amount,
     situation_analysis,
     reasoning,
     hand_notation: handNotation,

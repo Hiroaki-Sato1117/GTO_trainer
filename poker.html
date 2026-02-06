@@ -1251,9 +1251,9 @@
             }, []);
 
             // アクション評価
-            const evaluateAction = (action, recommendation) => {
+            const evaluateAction = (action, amount, recommendation) => {
                 if (!recommendation) return null;
-                const { fold_percentage, call_percentage, raise_percentage } = recommendation;
+                const { fold_percentage, call_percentage, raise_percentage, recommended_raise_amount } = recommendation;
                 const recs = [
                     { action: 'fold', percentage: fold_percentage },
                     { action: 'call', percentage: call_percentage },
@@ -1265,16 +1265,39 @@
                 const secondary = recs[1];
                 const userActionType = action === 'check' ? 'call' : action;
 
-                if (userActionType === primary.action ||
-                    (userActionType === 'call' && primary.action === 'check')) {
+                // アクションタイプが正しいかチェック
+                const isPrimary = userActionType === primary.action ||
+                    (userActionType === 'call' && primary.action === 'check');
+                const isSecondary = secondary && secondary.percentage >= 20 &&
+                    (userActionType === secondary.action ||
+                     (userActionType === 'call' && secondary.action === 'check'));
+
+                // レイズの場合、サイズもチェック
+                if (userActionType === 'raise' && (isPrimary || isSecondary) && recommended_raise_amount && amount) {
+                    const ratio = amount / recommended_raise_amount;
+                    if (ratio < 0.5 || ratio > 2.0) {
+                        // 推奨の50%未満 or 200%超 → ERROR
+                        return {
+                            result: 'ERROR',
+                            message: `レイズアクションは正しいですが、サイズが大きく異なります。推奨: ${recommended_raise_amount}チップ、あなた: ${amount}チップ`
+                        };
+                    }
+                    if (ratio < 0.75 || ratio > 1.5) {
+                        // 推奨の75%未満 or 150%超 → ACCEPTABLE
+                        return {
+                            result: 'ACCEPTABLE',
+                            message: `レイズは正しいですが、サイズが少し異なります。推奨: ${recommended_raise_amount}チップ、あなた: ${amount}チップ`
+                        };
+                    }
+                }
+
+                if (isPrimary) {
                     return {
                         result: 'CORRECT',
                         message: `素晴らしい！GTO推奨の${primary.action}を選択しました。`
                     };
                 }
-                if (secondary && secondary.percentage >= 20 &&
-                    (userActionType === secondary.action ||
-                     (userActionType === 'call' && secondary.action === 'check'))) {
+                if (isSecondary) {
                     return {
                         result: 'ACCEPTABLE',
                         message: `許容範囲内です。${secondary.action}は混合戦略の一部として${secondary.percentage}%の頻度で推奨されています。`
@@ -1289,7 +1312,7 @@
             const performAction = async (action, amount) => {
                 // フィードバックを表示
                 if (gtoRecommendation) {
-                    const evaluation = evaluateAction(action, gtoRecommendation);
+                    const evaluation = evaluateAction(action, amount, gtoRecommendation);
                     if (evaluation) {
                         setFeedback({
                             ...evaluation,
