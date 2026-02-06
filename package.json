@@ -1,34 +1,27 @@
 {
   "name": "gto-poker-trainer",
   "version": "1.0.0",
-  "description": "GTO Poker Learning Tool",
-  "main": "index.js",
+  "description": "テキサスホールデムポーカーのGTO戦略を学べるWebアプリケーション",
+  "main": "simple-server.js",
   "type": "module",
   "scripts": {
-    "test": "vitest run",
-    "test:watch": "vitest",
-    "build": "tsc",
-    "dev": "tsx server/src/index.ts"
+    "start": "node simple-server.js",
+    "dev": "node simple-server.js"
   },
   "keywords": [
     "poker",
     "gto",
-    "learning"
+    "texas-holdem",
+    "learning",
+    "training"
   ],
-  "author": "",
-  "license": "ISC",
-  "dependencies": {
-    "@types/node": "^25.2.0",
-    "cors": "^2.8.6",
-    "dotenv": "^17.2.3",
-    "express": "^5.2.1",
-    "ts-node": "^10.9.2",
-    "typescript": "^5.9.3"
+  "author": "Hiroaki-Sato1117",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/Hiroaki-Sato1117/GTO_trainer.git"
   },
-  "devDependencies": {
-    "@types/cors": "^2.8.19",
-    "@types/express": "^5.0.6",
-    "tsx": "^4.21.0",
-    "vitest": "^4.0.18"
+  "engines": {
+    "node": ">=18.0.0"
   }
 }
