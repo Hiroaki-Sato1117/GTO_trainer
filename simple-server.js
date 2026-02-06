@@ -282,6 +282,23 @@ function decideAIAction(player, state) {
     amount = Math.min(amount, player.stack);
   }
 
+  // 全員フォールド防止のセーフティネット
+  if (action === 'fold' && !hasRaise) {
+    const foldedCount = state.players.filter(p => p.isFolded).length;
+
+    // BTNで前の3人（UTG, HJ, CO）が全員フォールドした場合、必ずオープン
+    if (position === 'BTN' && foldedCount >= 3) {
+      action = 'raise';
+      amount = Math.min(state.blinds.bb * 2.5, player.stack);
+    }
+
+    // SBで前の4人（UTG, HJ, CO, BTN）が全員フォールドした場合、必ずオープン
+    if (position === 'SB' && foldedCount >= 4) {
+      action = 'raise';
+      amount = Math.min(state.blinds.bb * 3, player.stack);
+    }
+  }
+
   return {
     action,
     amount,

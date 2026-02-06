@@ -657,73 +657,6 @@
         const RANK_NAMES = { 2:'2', 3:'3', 4:'4', 5:'5', 6:'6', 7:'7', 8:'8', 9:'9', 10:'T', 11:'J', 12:'Q', 13:'K', 14:'A' };
         const RANGE_LABELS = ['A', 'K', 'Q', 'J', 'T', '9', '8', '7', '6', '5', '4', '3', '2'];
 
-        // ポジション別オープンレンジ
-        const OPEN_RANGES = {
-            UTG: [
-                [1,1,1,1,1,0,0,0,0,0,0,0,0],
-                [1,1,1,1,1,0,0,0,0,0,0,0,0],
-                [1,1,1,1,1,0,0,0,0,0,0,0,0],
-                [1,0,0,1,1,0,0,0,0,0,0,0,0],
-                [1,0,0,0,1,0,0,0,0,0,0,0,0],
-                [0,0,0,0,0,1,0,0,0,0,0,0,0],
-                [0,0,0,0,0,0,1,0,0,0,0,0,0],
-                [0,0,0,0,0,0,0,1,0,0,0,0,0],
-                [0,0,0,0,0,0,0,0,0,0,0,0,0],
-                [0,0,0,0,0,0,0,0,0,0,0,0,0],
-                [0,0,0,0,0,0,0,0,0,0,0,0,0],
-                [0,0,0,0,0,0,0,0,0,0,0,0,0],
-                [0,0,0,0,0,0,0,0,0,0,0,0,0]
-            ],
-            CO: [
-                [1,1,1,1,1,1,1,0,0,0,0,0,0],
-                [1,1,1,1,1,1,0,0,0,0,0,0,0],
-                [1,1,1,1,1,1,0,0,0,0,0,0,0],
-                [1,1,1,1,1,1,0,0,0,0,0,0,0],
-                [1,1,1,1,1,1,0,0,0,0,0,0,0],
-                [1,0,0,0,0,1,1,0,0,0,0,0,0],
-                [0,0,0,0,0,0,1,1,0,0,0,0,0],
-                [0,0,0,0,0,0,0,1,1,0,0,0,0],
-                [0,0,0,0,0,0,0,0,1,1,0,0,0],
-                [0,0,0,0,0,0,0,0,0,1,0,0,0],
-                [0,0,0,0,0,0,0,0,0,0,1,0,0],
-                [0,0,0,0,0,0,0,0,0,0,0,1,0],
-                [0,0,0,0,0,0,0,0,0,0,0,0,1]
-            ],
-            BTN: [
-                [1,1,1,1,1,1,1,1,0,0,0,0,0],
-                [1,1,1,1,1,1,1,0,0,0,0,0,0],
-                [1,1,1,1,1,1,1,0,0,0,0,0,0],
-                [1,1,1,1,1,1,1,0,0,0,0,0,0],
-                [1,1,1,1,1,1,1,0,0,0,0,0,0],
-                [1,1,1,1,1,1,1,1,0,0,0,0,0],
-                [1,0,0,0,0,1,1,1,1,0,0,0,0],
-                [1,0,0,0,0,1,1,1,1,0,0,0,0],
-                [0,0,0,0,0,0,0,1,1,1,0,0,0],
-                [0,0,0,0,0,0,0,0,1,1,0,0,0],
-                [0,0,0,0,0,0,0,0,0,0,1,0,0],
-                [0,0,0,0,0,0,0,0,0,0,0,1,0],
-                [0,0,0,0,0,0,0,0,0,0,0,0,1]
-            ]
-        };
-
-        // 3betレンジ（vs オープン）
-        const THREE_BET_RANGES = {
-            'vs_UTG': [
-                [2,2,2,2,0,0,0,0,0,0,0,0,0],
-                [2,2,2,0,0,0,0,0,0,0,0,0,0],
-                [2,0,2,1,0,0,0,0,0,0,0,0,0],
-                [0,0,0,2,0,0,0,0,0,0,0,0,0],
-                [0,0,0,0,1,0,0,0,0,0,0,0,0],
-                [0,0,0,0,0,1,0,0,0,0,0,0,0],
-                [0,0,0,0,0,0,1,0,0,0,0,0,0],
-                [0,0,0,0,0,0,0,1,0,0,0,0,0],
-                [0,0,0,0,0,0,0,0,0,0,0,0,0],
-                [0,0,0,0,0,0,0,0,0,0,0,0,0],
-                [0,0,0,0,0,0,0,0,0,0,0,0,0],
-                [0,0,0,0,0,0,0,0,0,0,0,0,0],
-                [0,0,0,0,0,0,0,0,0,0,0,0,0]
-            ]
-        };
 
         // カードコンポーネント
         function Card({ card, faceDown, size = 'sm' }) {
@@ -780,36 +713,40 @@
             );
         }
 
-        // レンジパネル
+        // レンジパネル（APIからデータ取得）
         function RangePanel({ heroPosition, heroHand, firstRaiser, onClose }) {
+            const [rangeMatrix, setRangeMatrix] = useState(null);
+            const [rangeTitle, setRangeTitle] = useState('');
+            const [loading, setLoading] = useState(true);
             const handNotation = heroHand ? getHandNotation(heroHand) : null;
 
-            // 状況に応じたレンジを選択
-            const getRangeData = () => {
-                if (firstRaiser) {
-                    return {
-                        title: `${heroPosition} vs ${firstRaiser} オープン`,
-                        subtitle: '3bet / コールレンジ',
-                        range: THREE_BET_RANGES['vs_UTG'] || OPEN_RANGES.UTG,
-                        legend: [
-                            { label: '3bet', color: '#f59e0b' },
-                            { label: 'コール', color: '#22c55e' },
-                            { label: 'フォールド', color: '#374151' }
-                        ]
-                    };
-                }
-                return {
-                    title: `${heroPosition} オープンレンジ (RFI)`,
-                    subtitle: null,
-                    range: OPEN_RANGES[heroPosition] || OPEN_RANGES.UTG,
-                    legend: [
-                        { label: 'オープン', color: '#22c55e' },
-                        { label: 'フォールド', color: '#374151' }
-                    ]
+            // APIからレンジデータを取得
+            useEffect(() => {
+                const fetchRange = async () => {
+                    setLoading(true);
+                    try {
+                        let url;
+                        if (firstRaiser) {
+                            url = `${API_BASE}/range?type=VS_OPEN&heroPosition=${heroPosition}&openerPosition=${firstRaiser}`;
+                        } else {
+                            url = `${API_BASE}/range?type=RFI&heroPosition=${heroPosition}`;
+                        }
+                        const res = await fetch(url);
+                        const data = await res.json();
+                        if (data.success) {
+                            setRangeMatrix(data.matrix);
+                            setRangeTitle(data.title);
+                        } else {
+                            setRangeMatrix(null);
+                        }
+                    } catch (err) {
+                        console.error('Range fetch error:', err);
+                        setRangeMatrix(null);
+                    }
+                    setLoading(false);
                 };
-            };
-
-            const rangeData = getRangeData();
+                fetchRange();
+            }, [heroPosition, firstRaiser]);
 
             const getCellHand = (row, col) => {
                 const r1 = RANGE_LABELS[row];
@@ -820,7 +757,8 @@
             };
 
             const getCellClass = (row, col) => {
-                const value = rangeData.range[row]?.[col] || 0;
+                if (!rangeMatrix) return 'fold';
+                const value = rangeMatrix[row]?.[col] || 0;
                 if (value === 2) return 'raise';
                 if (value === 1) return 'call';
                 return 'fold';
@@ -832,10 +770,10 @@
             };
 
             const isInRange = () => {
-                if (!handNotation) return false;
+                if (!handNotation || !rangeMatrix) return false;
                 for (let r = 0; r < 13; r++) {
                     for (let c = 0; c < 13; c++) {
-                        if (getCellHand(r, c) === handNotation && rangeData.range[r]?.[c] > 0) {
+                        if (getCellHand(r, c) === handNotation && rangeMatrix[r]?.[c] > 0) {
                             return true;
                         }
                     }
@@ -843,58 +781,89 @@
                 return false;
             };
 
+            const legend = firstRaiser
+                ? [
+                    { label: '3bet/Raise', color: '#f59e0b' },
+                    { label: 'コール', color: '#22c55e' },
+                    { label: 'フォールド', color: '#374151' }
+                ]
+                : [
+                    { label: 'オープン', color: '#f59e0b' },
+                    { label: 'フォールド', color: '#374151' }
+                ];
+
+            if (loading) {
+                return (
+                    <div className="left-panel">
+                        <div className="panel-header">
+                            <div className="panel-title"><span>レンジ表</span></div>
+                            <button className="close-btn" onClick={onClose}>−</button>
+                        </div>
+                        <div style={{color: '#9ca3af', textAlign: 'center', padding: '20px'}}>
+                            読み込み中...
+                        </div>
+                    </div>
+                );
+            }
+
             return (
                 <div className="left-panel">
                     <div className="panel-header">
-                        <div className="panel-title">
-                            <span>レンジ表</span>
-                        </div>
+                        <div className="panel-title"><span>レンジ表</span></div>
                         <button className="close-btn" onClick={onClose}>−</button>
                     </div>
 
                     <div className="range-info">
-                        <div className="range-title">{rangeData.title}</div>
-                        {rangeData.subtitle && (
+                        <div className="range-title">{rangeTitle || `${heroPosition} Range`}</div>
+                        {firstRaiser && (
                             <div style={{fontSize: '10px', color: '#9ca3af', marginBottom: '8px'}}>
-                                {rangeData.subtitle}
+                                vs {firstRaiser} Open
                             </div>
                         )}
 
-                        <div className="range-grid">
-                            {RANGE_LABELS.map((_, row) =>
-                                RANGE_LABELS.map((_, col) => {
-                                    const cellHand = getCellHand(row, col);
-                                    const isCurrent = isCurrentHand(row, col);
-                                    return (
-                                        <div
-                                            key={`${row}-${col}`}
-                                            className={`range-cell ${getCellClass(row, col)} ${isCurrent ? 'current' : ''}`}
-                                            title={cellHand}
-                                        >
-                                            {cellHand.substring(0, 2)}
-                                        </div>
-                                    );
-                                })
-                            )}
-                        </div>
-
-                        <div className="range-legend">
-                            {rangeData.legend.map((item, i) => (
-                                <div key={i} className="range-legend-item">
-                                    <div className="range-legend-color" style={{background: item.color}} />
-                                    <span>{item.label}</span>
+                        {rangeMatrix ? (
+                            <>
+                                <div className="range-grid">
+                                    {RANGE_LABELS.map((_, row) =>
+                                        RANGE_LABELS.map((_, col) => {
+                                            const cellHand = getCellHand(row, col);
+                                            const isCurrent = isCurrentHand(row, col);
+                                            return (
+                                                <div
+                                                    key={`${row}-${col}`}
+                                                    className={`range-cell ${getCellClass(row, col)} ${isCurrent ? 'current' : ''}`}
+                                                    title={cellHand}
+                                                >
+                                                    {cellHand.substring(0, 2)}
+                                                </div>
+                                            );
+                                        })
+                                    )}
                                 </div>
-                            ))}
-                        </div>
+
+                                <div className="range-legend">
+                                    {legend.map((item, i) => (
+                                        <div key={i} className="range-legend-item">
+                                            <div className="range-legend-color" style={{background: item.color}} />
+                                            <span>{item.label}</span>
+                                        </div>
+                                    ))}
+                                </div>
+                            </>
+                        ) : (
+                            <div style={{color: '#9ca3af', textAlign: 'center', padding: '12px', fontSize: '12px'}}>
+                                このシチュエーションのレンジデータはありません
+                            </div>
+                        )}
                     </div>
 
-                    {handNotation && (
+                    {handNotation && rangeMatrix && (
                         <div className="current-hand-info">
                             <div className="text-white font-bold text-sm mb-1">
                                 現在のハンド: {handNotation}
                             </div>
                             <div className={isInRange() ? 'text-green-400' : 'text-red-400'} style={{fontSize: '12px'}}>
-                                {isInRange() ? '✓ レンジ内' : '✗ レンジ外'}
+                                {isInRange() ? 'レンジ内' : 'レンジ外'}
                             </div>
                         </div>
                     )}
