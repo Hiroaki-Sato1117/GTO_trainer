@@ -1,0 +1,1363 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GTO Poker Trainer v3</title>
+    <script src="https://unpkg.com/react@18/umd/react.development.js"></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body {
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
+            font-family: 'Hiragino Sans', 'Meiryo', sans-serif;
+            height: 100vh;
+            overflow: hidden;
+        }
+
+        /* メインレイアウト - 3カラム */
+        .game-container {
+            display: grid;
+            grid-template-rows: 50px 1fr;
+            height: 100vh;
+            width: 100%;
+        }
+
+        /* ヘッダー */
+        .header {
+            background: rgba(0,0,0,0.5);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 20px;
+            border-bottom: 1px solid rgba(255,255,255,0.1);
+        }
+
+        .header-left {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+        }
+
+        .header-center {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .toggle-btn {
+            padding: 6px 12px;
+            border-radius: 6px;
+            font-size: 12px;
+            font-weight: bold;
+            cursor: pointer;
+            border: none;
+            transition: all 0.2s;
+        }
+        .toggle-btn.active {
+            background: #3b82f6;
+            color: white;
+        }
+        .toggle-btn.inactive {
+            background: #374151;
+            color: #9ca3af;
+        }
+        .toggle-btn:hover {
+            filter: brightness(1.1);
+        }
+
+        /* 3カラム構造 */
+        .content-area {
+            display: grid;
+            overflow: hidden;
+            transition: grid-template-columns 0.3s ease;
+        }
+
+        .content-3col {
+            grid-template-columns: 250px 1fr 300px;
+        }
+        .content-2col-left {
+            grid-template-columns: 250px 1fr;
+        }
+        .content-2col-right {
+            grid-template-columns: 1fr 300px;
+        }
+        .content-1col {
+            grid-template-columns: 1fr;
+        }
+
+        /* 左パネル - レンジ表 */
+        .left-panel {
+            background: rgba(0,0,0,0.4);
+            border-right: 1px solid rgba(255,255,255,0.1);
+            padding: 16px;
+            overflow-y: auto;
+        }
+
+        .panel-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 12px;
+            padding-bottom: 8px;
+            border-bottom: 1px solid rgba(255,255,255,0.1);
+        }
+
+        .panel-title {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-weight: bold;
+            color: white;
+        }
+
+        .close-btn {
+            background: none;
+            border: none;
+            color: #9ca3af;
+            cursor: pointer;
+            font-size: 18px;
+            padding: 4px 8px;
+        }
+        .close-btn:hover { color: white; }
+
+        /* 右パネル - GTO推奨 */
+        .right-panel {
+            background: linear-gradient(180deg, rgba(88,28,135,0.9), rgba(59,7,100,0.9));
+            border-left: 1px solid rgba(168,85,247,0.3);
+            padding: 16px;
+            overflow-y: auto;
+        }
+
+        /* メインエリア */
+        .main-area {
+            display: grid;
+            grid-template-rows: 1fr 120px 80px;
+            overflow: hidden;
+        }
+
+        /* テーブルエリア */
+        .table-area {
+            position: relative;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+
+        .poker-table {
+            position: relative;
+            width: 650px;
+            height: 300px;
+        }
+
+        .table-felt {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 550px;
+            height: 240px;
+            background: radial-gradient(ellipse, #1e6b3a 0%, #145028 60%, #0d3d1c 100%);
+            border-radius: 120px;
+            border: 10px solid #5c3d2e;
+            box-shadow: 0 0 0 3px #8b6914, 0 0 30px rgba(0,0,0,0.5), inset 0 0 50px rgba(0,0,0,0.3);
+        }
+
+        /* プレイヤー配置 */
+        .player-seat {
+            position: absolute;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            z-index: 5;
+            transition: all 0.3s ease;
+        }
+
+        .seat-top { top: -55px; left: 50%; transform: translateX(-50%); }
+        .seat-left-top { top: 15px; left: -35px; }
+        .seat-left-bottom { bottom: 15px; left: -35px; }
+        .seat-right-bottom { bottom: 15px; right: -35px; }
+        .seat-right-top { top: 15px; right: -35px; }
+
+        .player-seat.active .player-box {
+            box-shadow: 0 0 15px #fbbf24, 0 0 30px rgba(251,191,36,0.4);
+            border-color: #fbbf24;
+        }
+        .player-seat.folded { opacity: 0.35; }
+
+        .player-box {
+            background: linear-gradient(to bottom, #2a2a3a, #1a1a2a);
+            border: 2px solid #444;
+            border-radius: 8px;
+            padding: 6px 10px;
+            min-width: 90px;
+            text-align: center;
+        }
+
+        .player-cards {
+            display: flex;
+            gap: 2px;
+            margin-bottom: 4px;
+        }
+
+        /* アクションラベル */
+        .action-label {
+            position: absolute;
+            top: -24px;
+            left: 50%;
+            transform: translateX(-50%);
+            padding: 3px 8px;
+            border-radius: 4px;
+            font-size: 10px;
+            font-weight: bold;
+            color: white;
+            white-space: nowrap;
+            animation: fadeIn 0.3s ease;
+        }
+        .action-label.fold { background: #6b7280; }
+        .action-label.raise { background: #f59e0b; }
+        .action-label.call { background: #22c55e; }
+        .action-label.check { background: #3b82f6; }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateX(-50%) translateY(-8px); }
+            to { opacity: 1; transform: translateX(-50%) translateY(0); }
+        }
+
+        /* カード */
+        .card {
+            border-radius: 3px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.4);
+        }
+        .card-xs { width: 24px; height: 32px; font-size: 8px; }
+        .card-sm { width: 32px; height: 44px; font-size: 10px; }
+        .card-md { width: 44px; height: 60px; font-size: 14px; }
+        .card-lg { width: 60px; height: 84px; font-size: 18px; }
+
+        .card-back {
+            background: linear-gradient(135deg, #8b0000, #4a0000);
+            border: 2px solid #ffd700;
+        }
+        .card-front {
+            background: linear-gradient(to bottom, #fff, #f0f0f0);
+            border: 2px solid #333;
+        }
+        .red { color: #dc2626; }
+        .black { color: #1a1a1a; }
+
+        /* ポジションバッジ */
+        .pos-badge {
+            font-size: 9px;
+            font-weight: bold;
+            padding: 2px 5px;
+            border-radius: 3px;
+            color: white;
+            display: inline-block;
+        }
+        .pos-BTN { background: #f97316; }
+        .pos-SB { background: #3b82f6; }
+        .pos-BB { background: #22c55e; }
+        .pos-UTG { background: #ef4444; }
+        .pos-HJ { background: #eab308; }
+        .pos-CO { background: #a855f7; }
+
+        /* コミュニティエリア */
+        .community-area {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            text-align: center;
+        }
+
+        .community-cards {
+            display: flex;
+            gap: 5px;
+            justify-content: center;
+            margin-bottom: 6px;
+        }
+
+        /* 自分のエリア */
+        .hero-area {
+            background: linear-gradient(to bottom, rgba(30,58,95,0.8), rgba(13,31,60,0.8));
+            border-top: 2px solid #3b82f6;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 24px;
+            padding: 12px;
+        }
+
+        .hero-cards {
+            display: flex;
+            gap: 6px;
+        }
+
+        .hero-info {
+            text-align: center;
+        }
+
+        /* アクションエリア */
+        .action-area {
+            background: linear-gradient(to bottom, #1f2937, #111827);
+            border-top: 1px solid #374151;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            gap: 6px;
+            padding: 8px 16px;
+        }
+
+        .action-row {
+            display: flex;
+            gap: 8px;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .action-btn {
+            padding: 8px 20px;
+            border-radius: 6px;
+            font-weight: bold;
+            font-size: 13px;
+            color: white;
+            cursor: pointer;
+            border: none;
+            transition: all 0.15s;
+        }
+        .action-btn:hover { transform: scale(1.03); filter: brightness(1.1); }
+        .action-btn:disabled { opacity: 0.4; cursor: not-allowed; transform: none; }
+        .btn-fold { background: linear-gradient(to bottom, #6b7280, #4b5563); }
+        .btn-check { background: linear-gradient(to bottom, #6b7280, #4b5563); }
+        .btn-call { background: linear-gradient(to bottom, #22c55e, #16a34a); }
+        .btn-raise { background: linear-gradient(to bottom, #f59e0b, #d97706); }
+
+        .size-btn {
+            padding: 5px 10px;
+            border-radius: 5px;
+            font-size: 11px;
+            font-weight: bold;
+            color: white;
+            background: #374151;
+            border: none;
+            cursor: pointer;
+        }
+        .size-btn:hover { background: #4b5563; }
+        .size-btn.allin { background: #dc2626; }
+
+        .bet-slider {
+            width: 160px;
+            height: 5px;
+            border-radius: 3px;
+            background: linear-gradient(to right, #22c55e, #f59e0b, #ef4444);
+            -webkit-appearance: none;
+            cursor: pointer;
+        }
+        .bet-slider::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            width: 16px;
+            height: 16px;
+            border-radius: 50%;
+            background: white;
+            border: 2px solid #3b82f6;
+            cursor: pointer;
+        }
+
+        .bet-input {
+            width: 70px;
+            padding: 5px 8px;
+            border-radius: 5px;
+            background: #1f2937;
+            border: 1px solid #374151;
+            color: white;
+            font-size: 13px;
+            text-align: center;
+        }
+
+        /* レンジ表 */
+        .range-info {
+            background: rgba(0,0,0,0.3);
+            border-radius: 6px;
+            padding: 10px;
+            margin-bottom: 12px;
+        }
+
+        .range-title {
+            font-size: 12px;
+            font-weight: bold;
+            color: #a5b4fc;
+            margin-bottom: 8px;
+        }
+
+        .range-grid {
+            display: grid;
+            grid-template-columns: repeat(13, 1fr);
+            gap: 1px;
+        }
+
+        .range-cell {
+            aspect-ratio: 1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 7px;
+            font-weight: bold;
+            border-radius: 2px;
+            cursor: pointer;
+            transition: all 0.15s;
+        }
+        .range-cell:hover {
+            transform: scale(1.4);
+            z-index: 10;
+        }
+        .range-cell.raise { background: #f59e0b; color: white; }
+        .range-cell.call { background: #22c55e; color: white; }
+        .range-cell.fold { background: #374151; color: #6b7280; }
+        .range-cell.current {
+            box-shadow: 0 0 0 2px #fff, 0 0 6px #fff;
+            animation: pulse 1.5s infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { box-shadow: 0 0 0 2px #fff, 0 0 6px #fff; }
+            50% { box-shadow: 0 0 0 3px #fbbf24, 0 0 10px #fbbf24; }
+        }
+
+        .range-legend {
+            display: flex;
+            gap: 12px;
+            margin-top: 10px;
+            font-size: 10px;
+            color: #9ca3af;
+        }
+        .range-legend-item {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+        .range-legend-color {
+            width: 12px;
+            height: 12px;
+            border-radius: 2px;
+        }
+
+        .current-hand-info {
+            margin-top: 12px;
+            padding: 10px;
+            background: rgba(59, 130, 246, 0.2);
+            border: 1px solid rgba(59, 130, 246, 0.5);
+            border-radius: 6px;
+            text-align: center;
+        }
+
+        /* GTO推奨 */
+        .progress-bar {
+            height: 26px;
+            border-radius: 5px;
+            overflow: hidden;
+            display: flex;
+            background: #374151;
+            margin-bottom: 14px;
+        }
+        .progress-bar > div {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 10px;
+            font-weight: bold;
+            color: white;
+        }
+
+        .gto-section {
+            margin-bottom: 14px;
+        }
+
+        .gto-section-title {
+            font-size: 11px;
+            font-weight: bold;
+            color: #c4b5fd;
+            margin-bottom: 6px;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+
+        .gto-item {
+            font-size: 11px;
+            color: #e0e0e0;
+            padding: 5px 0;
+            border-bottom: 1px solid rgba(255,255,255,0.05);
+            display: flex;
+            align-items: flex-start;
+            gap: 5px;
+        }
+        .gto-item:last-child { border-bottom: none; }
+
+        .gto-bullet {
+            color: #a855f7;
+            flex-shrink: 0;
+        }
+
+        /* フィードバックモーダル */
+        .feedback-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0,0,0,0.7);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 100;
+            animation: fadeIn 0.3s ease;
+        }
+
+        .feedback-modal {
+            background: linear-gradient(135deg, #1f2937, #111827);
+            border-radius: 16px;
+            padding: 30px 40px;
+            text-align: center;
+            min-width: 400px;
+            box-shadow: 0 20px 50px rgba(0,0,0,0.5);
+        }
+
+        .feedback-icon {
+            font-size: 60px;
+            margin-bottom: 16px;
+        }
+
+        .feedback-title {
+            font-size: 28px;
+            font-weight: bold;
+            margin-bottom: 16px;
+        }
+        .feedback-title.correct { color: #22c55e; }
+        .feedback-title.error { color: #ef4444; }
+        .feedback-title.acceptable { color: #f59e0b; }
+
+        .feedback-details {
+            color: #9ca3af;
+            font-size: 14px;
+            margin-bottom: 8px;
+        }
+
+        .feedback-message {
+            color: white;
+            font-size: 15px;
+            margin-bottom: 24px;
+            line-height: 1.6;
+        }
+
+        .feedback-btn {
+            padding: 12px 32px;
+            border-radius: 8px;
+            font-weight: bold;
+            font-size: 14px;
+            color: white;
+            background: #3b82f6;
+            border: none;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .feedback-btn:hover {
+            background: #2563eb;
+            transform: scale(1.05);
+        }
+
+        /* 処理中インジケーター */
+        .processing-indicator {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            padding: 10px;
+            background: rgba(251, 191, 36, 0.2);
+            border: 1px solid rgba(251, 191, 36, 0.5);
+            border-radius: 8px;
+            color: #fbbf24;
+            font-size: 13px;
+        }
+
+        .spinner {
+            width: 18px;
+            height: 18px;
+            border: 2px solid rgba(251,191,36,0.3);
+            border-top-color: #fbbf24;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        .waiting-message {
+            text-align: center;
+            padding: 16px;
+            color: #9ca3af;
+            font-size: 14px;
+        }
+    </style>
+</head>
+<body>
+    <div id="root"></div>
+
+    <script type="text/babel">
+        const { useState, useEffect, useCallback, useMemo, useRef } = React;
+
+        const API_BASE = 'http://localhost:3001/api';
+        const SUIT_SYMBOLS = { hearts: '♥', diamonds: '♦', clubs: '♣', spades: '♠' };
+        const RANK_NAMES = { 2:'2', 3:'3', 4:'4', 5:'5', 6:'6', 7:'7', 8:'8', 9:'9', 10:'T', 11:'J', 12:'Q', 13:'K', 14:'A' };
+        const RANGE_LABELS = ['A', 'K', 'Q', 'J', 'T', '9', '8', '7', '6', '5', '4', '3', '2'];
+
+        // ポジション別オープンレンジ
+        const OPEN_RANGES = {
+            UTG: [
+                [1,1,1,1,1,0,0,0,0,0,0,0,0],
+                [1,1,1,1,1,0,0,0,0,0,0,0,0],
+                [1,1,1,1,1,0,0,0,0,0,0,0,0],
+                [1,0,0,1,1,0,0,0,0,0,0,0,0],
+                [1,0,0,0,1,0,0,0,0,0,0,0,0],
+                [0,0,0,0,0,1,0,0,0,0,0,0,0],
+                [0,0,0,0,0,0,1,0,0,0,0,0,0],
+                [0,0,0,0,0,0,0,1,0,0,0,0,0],
+                [0,0,0,0,0,0,0,0,0,0,0,0,0],
+                [0,0,0,0,0,0,0,0,0,0,0,0,0],
+                [0,0,0,0,0,0,0,0,0,0,0,0,0],
+                [0,0,0,0,0,0,0,0,0,0,0,0,0],
+                [0,0,0,0,0,0,0,0,0,0,0,0,0]
+            ],
+            CO: [
+                [1,1,1,1,1,1,1,0,0,0,0,0,0],
+                [1,1,1,1,1,1,0,0,0,0,0,0,0],
+                [1,1,1,1,1,1,0,0,0,0,0,0,0],
+                [1,1,1,1,1,1,0,0,0,0,0,0,0],
+                [1,1,1,1,1,1,0,0,0,0,0,0,0],
+                [1,0,0,0,0,1,1,0,0,0,0,0,0],
+                [0,0,0,0,0,0,1,1,0,0,0,0,0],
+                [0,0,0,0,0,0,0,1,1,0,0,0,0],
+                [0,0,0,0,0,0,0,0,1,1,0,0,0],
+                [0,0,0,0,0,0,0,0,0,1,0,0,0],
+                [0,0,0,0,0,0,0,0,0,0,1,0,0],
+                [0,0,0,0,0,0,0,0,0,0,0,1,0],
+                [0,0,0,0,0,0,0,0,0,0,0,0,1]
+            ],
+            BTN: [
+                [1,1,1,1,1,1,1,1,0,0,0,0,0],
+                [1,1,1,1,1,1,1,0,0,0,0,0,0],
+                [1,1,1,1,1,1,1,0,0,0,0,0,0],
+                [1,1,1,1,1,1,1,0,0,0,0,0,0],
+                [1,1,1,1,1,1,1,0,0,0,0,0,0],
+                [1,1,1,1,1,1,1,1,0,0,0,0,0],
+                [1,0,0,0,0,1,1,1,1,0,0,0,0],
+                [1,0,0,0,0,1,1,1,1,0,0,0,0],
+                [0,0,0,0,0,0,0,1,1,1,0,0,0],
+                [0,0,0,0,0,0,0,0,1,1,0,0,0],
+                [0,0,0,0,0,0,0,0,0,0,1,0,0],
+                [0,0,0,0,0,0,0,0,0,0,0,1,0],
+                [0,0,0,0,0,0,0,0,0,0,0,0,1]
+            ]
+        };
+
+        // 3betレンジ（vs オープン）
+        const THREE_BET_RANGES = {
+            'vs_UTG': [
+                [2,2,2,2,0,0,0,0,0,0,0,0,0],
+                [2,2,2,0,0,0,0,0,0,0,0,0,0],
+                [2,0,2,1,0,0,0,0,0,0,0,0,0],
+                [0,0,0,2,0,0,0,0,0,0,0,0,0],
+                [0,0,0,0,1,0,0,0,0,0,0,0,0],
+                [0,0,0,0,0,1,0,0,0,0,0,0,0],
+                [0,0,0,0,0,0,1,0,0,0,0,0,0],
+                [0,0,0,0,0,0,0,1,0,0,0,0,0],
+                [0,0,0,0,0,0,0,0,0,0,0,0,0],
+                [0,0,0,0,0,0,0,0,0,0,0,0,0],
+                [0,0,0,0,0,0,0,0,0,0,0,0,0],
+                [0,0,0,0,0,0,0,0,0,0,0,0,0],
+                [0,0,0,0,0,0,0,0,0,0,0,0,0]
+            ]
+        };
+
+        // カードコンポーネント
+        function Card({ card, faceDown, size = 'sm' }) {
+            const sizeClass = {xs:'card-xs', sm:'card-sm', md:'card-md', lg:'card-lg'}[size] || 'card-sm';
+            if (faceDown || !card) return <div className={`card card-back ${sizeClass}`} />;
+            const isRed = card.suit === 'hearts' || card.suit === 'diamonds';
+            return (
+                <div className={`card card-front ${sizeClass}`}>
+                    <span className={isRed ? 'red' : 'black'}>{RANK_NAMES[card.rank]}</span>
+                    <span className={isRed ? 'red' : 'black'}>{SUIT_SYMBOLS[card.suit]}</span>
+                </div>
+            );
+        }
+
+        // ハンド表記を取得
+        function getHandNotation(cards) {
+            if (!cards || cards.length !== 2) return null;
+            const sorted = [...cards].sort((a, b) => b.rank - a.rank);
+            const r1 = RANK_NAMES[sorted[0].rank];
+            const r2 = RANK_NAMES[sorted[1].rank];
+            const suited = sorted[0].suit === sorted[1].suit ? 's' : 'o';
+            if (sorted[0].rank === sorted[1].rank) return r1 + r2;
+            return r1 + r2 + suited;
+        }
+
+        // プレイヤーコンポーネント
+        function PlayerSeat({ player, isActive, seatClass }) {
+            const actionClass = player.lastAction ? player.lastAction.toLowerCase() : '';
+            return (
+                <div className={`player-seat ${seatClass} ${isActive ? 'active' : ''} ${player.isFolded ? 'folded' : ''}`}>
+                    {player.lastAction && !player.isFolded && (
+                        <div className={`action-label ${actionClass}`}>
+                            {player.lastAction === 'raise' ? `Raise ${player.lastActionAmount}` :
+                             player.lastAction === 'call' ? `Call ${player.lastActionAmount}` :
+                             player.lastAction === 'fold' ? 'Fold' :
+                             player.lastAction === 'check' ? 'Check' :
+                             player.lastAction}
+                        </div>
+                    )}
+                    <div className="player-cards">
+                        <Card faceDown={true} size="xs" />
+                        <Card faceDown={true} size="xs" />
+                    </div>
+                    <div className="player-box">
+                        <div style={{marginBottom: '3px'}}>
+                            <span className={`pos-badge pos-${player.position}`}>{player.position}</span>
+                        </div>
+                        <div className="text-white text-xs">{player.name}</div>
+                        <div className="text-yellow-400 text-xs font-bold">{player.stack.toLocaleString()}</div>
+                        {player.currentBet > 0 && <div className="text-green-400" style={{fontSize: '10px'}}>Bet: {player.currentBet}</div>}
+                        {player.isFolded && <div className="text-red-400" style={{fontSize: '10px'}}>FOLD</div>}
+                    </div>
+                </div>
+            );
+        }
+
+        // レンジパネル
+        function RangePanel({ heroPosition, heroHand, firstRaiser, onClose }) {
+            const handNotation = heroHand ? getHandNotation(heroHand) : null;
+
+            // 状況に応じたレンジを選択
+            const getRangeData = () => {
+                if (firstRaiser) {
+                    return {
+                        title: `${heroPosition} vs ${firstRaiser} オープン`,
+                        subtitle: '3bet / コールレンジ',
+                        range: THREE_BET_RANGES['vs_UTG'] || OPEN_RANGES.UTG,
+                        legend: [
+                            { label: '3bet', color: '#f59e0b' },
+                            { label: 'コール', color: '#22c55e' },
+                            { label: 'フォールド', color: '#374151' }
+                        ]
+                    };
+                }
+                return {
+                    title: `${heroPosition} オープンレンジ (RFI)`,
+                    subtitle: null,
+                    range: OPEN_RANGES[heroPosition] || OPEN_RANGES.UTG,
+                    legend: [
+                        { label: 'オープン', color: '#22c55e' },
+                        { label: 'フォールド', color: '#374151' }
+                    ]
+                };
+            };
+
+            const rangeData = getRangeData();
+
+            const getCellHand = (row, col) => {
+                const r1 = RANGE_LABELS[row];
+                const r2 = RANGE_LABELS[col];
+                if (row === col) return r1 + r2;
+                if (row < col) return r1 + r2 + 's';
+                return r2 + r1 + 'o';
+            };
+
+            const getCellClass = (row, col) => {
+                const value = rangeData.range[row]?.[col] || 0;
+                if (value === 2) return 'raise';
+                if (value === 1) return 'call';
+                return 'fold';
+            };
+
+            const isCurrentHand = (row, col) => {
+                if (!handNotation) return false;
+                return getCellHand(row, col) === handNotation;
+            };
+
+            const isInRange = () => {
+                if (!handNotation) return false;
+                for (let r = 0; r < 13; r++) {
+                    for (let c = 0; c < 13; c++) {
+                        if (getCellHand(r, c) === handNotation && rangeData.range[r]?.[c] > 0) {
+                            return true;
+                        }
+                    }
+                }
+                return false;
+            };
+
+            return (
+                <div className="left-panel">
+                    <div className="panel-header">
+                        <div className="panel-title">
+                            <span>📊</span>
+                            <span>レンジ表</span>
+                        </div>
+                        <button className="close-btn" onClick={onClose}>−</button>
+                    </div>
+
+                    <div className="range-info">
+                        <div className="range-title">{rangeData.title}</div>
+                        {rangeData.subtitle && (
+                            <div style={{fontSize: '10px', color: '#9ca3af', marginBottom: '8px'}}>
+                                {rangeData.subtitle}
+                            </div>
+                        )}
+
+                        <div className="range-grid">
+                            {RANGE_LABELS.map((_, row) =>
+                                RANGE_LABELS.map((_, col) => {
+                                    const cellHand = getCellHand(row, col);
+                                    const isCurrent = isCurrentHand(row, col);
+                                    return (
+                                        <div
+                                            key={`${row}-${col}`}
+                                            className={`range-cell ${getCellClass(row, col)} ${isCurrent ? 'current' : ''}`}
+                                            title={cellHand}
+                                        >
+                                            {cellHand.substring(0, 2)}
+                                        </div>
+                                    );
+                                })
+                            )}
+                        </div>
+
+                        <div className="range-legend">
+                            {rangeData.legend.map((item, i) => (
+                                <div key={i} className="range-legend-item">
+                                    <div className="range-legend-color" style={{background: item.color}} />
+                                    <span>{item.label}</span>
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+
+                    {handNotation && (
+                        <div className="current-hand-info">
+                            <div className="text-white font-bold text-sm mb-1">
+                                現在のハンド: {handNotation}
+                            </div>
+                            <div className={isInRange() ? 'text-green-400' : 'text-red-400'} style={{fontSize: '12px'}}>
+                                {isInRange() ? '✓ レンジ内' : '✗ レンジ外'}
+                            </div>
+                        </div>
+                    )}
+                </div>
+            );
+        }
+
+        // GTO推奨パネル
+        function GTOPanel({ recommendation, onClose }) {
+            if (!recommendation) {
+                return (
+                    <div className="right-panel">
+                        <div className="panel-header">
+                            <div className="panel-title">
+                                <span>🎯</span>
+                                <span>GTO推奨</span>
+                            </div>
+                            <button className="close-btn" onClick={onClose}>−</button>
+                        </div>
+                        <div style={{color: '#9ca3af', textAlign: 'center', padding: '30px 0'}}>
+                            あなたのターンになると<br/>GTO推奨が表示されます
+                        </div>
+                    </div>
+                );
+            }
+
+            const {
+                fold_percentage = 0,
+                call_percentage = 0,
+                raise_percentage = 0,
+                situation_analysis = [],
+                reasoning = [],
+                raise_size_description,
+                raise_reasoning,
+                hand_notation
+            } = recommendation;
+
+            return (
+                <div className="right-panel">
+                    <div className="panel-header">
+                        <div className="panel-title">
+                            <span>🎯</span>
+                            <span>GTO推奨</span>
+                        </div>
+                        <button className="close-btn" onClick={onClose}>−</button>
+                    </div>
+
+                    {hand_notation && (
+                        <div style={{textAlign: 'center', marginBottom: '12px'}}>
+                            <span className="text-yellow-400 font-bold text-lg">{hand_notation}</span>
+                        </div>
+                    )}
+
+                    <div className="progress-bar">
+                        {fold_percentage > 0 && (
+                            <div style={{width: `${fold_percentage}%`, background: '#6b7280'}}>
+                                Fold {fold_percentage}%
+                            </div>
+                        )}
+                        {call_percentage > 0 && (
+                            <div style={{width: `${call_percentage}%`, background: '#22c55e'}}>
+                                Call {call_percentage}%
+                            </div>
+                        )}
+                        {raise_percentage > 0 && (
+                            <div style={{width: `${raise_percentage}%`, background: '#f59e0b'}}>
+                                Raise {raise_percentage}%
+                            </div>
+                        )}
+                    </div>
+
+                    {situation_analysis.length > 0 && (
+                        <div className="gto-section">
+                            <div className="gto-section-title">
+                                <span>📊</span> 状況分析
+                            </div>
+                            {situation_analysis.map((item, i) => (
+                                <div key={i} className="gto-item">
+                                    <span className="gto-bullet">•</span>
+                                    <span>{item}</span>
+                                </div>
+                            ))}
+                        </div>
+                    )}
+
+                    {reasoning.length > 0 && (
+                        <div className="gto-section">
+                            <div className="gto-section-title">
+                                <span>📝</span> 推奨理由
+                            </div>
+                            {reasoning.map((item, i) => (
+                                <div key={i} className="gto-item">
+                                    <span className="gto-bullet">•</span>
+                                    <span>{item}</span>
+                                </div>
+                            ))}
+                        </div>
+                    )}
+
+                    {raise_percentage > 0 && raise_size_description && (
+                        <div className="gto-section">
+                            <div className="gto-section-title">
+                                <span>💰</span> レイズサイズ
+                            </div>
+                            <div className="text-yellow-300 text-sm font-bold mb-1">
+                                {raise_size_description}
+                            </div>
+                            {raise_reasoning && (
+                                <div className="text-gray-300" style={{fontSize: '11px'}}>
+                                    {raise_reasoning}
+                                </div>
+                            )}
+                        </div>
+                    )}
+                </div>
+            );
+        }
+
+        // フィードバックモーダル
+        function FeedbackModal({ feedback, onClose }) {
+            if (!feedback) return null;
+
+            const { result, userAction, gtoRecommendation, message } = feedback;
+
+            const resultConfig = {
+                CORRECT: { icon: '✅', title: 'CORRECT', class: 'correct' },
+                ERROR: { icon: '❌', title: 'ERROR', class: 'error' },
+                ACCEPTABLE: { icon: '⚠️', title: 'ACCEPTABLE', class: 'acceptable' }
+            };
+
+            const config = resultConfig[result] || resultConfig.ERROR;
+
+            return (
+                <div className="feedback-overlay" onClick={onClose}>
+                    <div className="feedback-modal" onClick={e => e.stopPropagation()}>
+                        <div className="feedback-icon">{config.icon}</div>
+                        <div className={`feedback-title ${config.class}`}>{config.title}</div>
+                        <div className="feedback-details">
+                            あなたの選択: {userAction}
+                        </div>
+                        <div className="feedback-details">
+                            GTO推奨: Fold {gtoRecommendation?.fold_percentage || 0}% /
+                            Call {gtoRecommendation?.call_percentage || 0}% /
+                            Raise {gtoRecommendation?.raise_percentage || 0}%
+                        </div>
+                        <div className="feedback-message">{message}</div>
+                        <button className="feedback-btn" onClick={onClose}>
+                            次のアクションへ
+                        </button>
+                    </div>
+                </div>
+            );
+        }
+
+        // メインアプリ
+        function App() {
+            const [game, setGame] = useState(null);
+            const [isLoading, setIsLoading] = useState(false);
+            const [isProcessingAI, setIsProcessingAI] = useState(false);
+            const [gtoRecommendation, setGtoRecommendation] = useState(null);
+            const [betAmount, setBetAmount] = useState(300);
+            const [showRangePanel, setShowRangePanel] = useState(true);
+            const [showGTOPanel, setShowGTOPanel] = useState(true);
+            const [feedback, setFeedback] = useState(null);
+
+            // グリッドカラムを動的に計算
+            const contentClass = useMemo(() => {
+                if (showRangePanel && showGTOPanel) return 'content-area content-3col';
+                if (showRangePanel) return 'content-area content-2col-left';
+                if (showGTOPanel) return 'content-area content-2col-right';
+                return 'content-area content-1col';
+            }, [showRangePanel, showGTOPanel]);
+
+            // AIアクションを順次処理
+            const processAIActions = async () => {
+                setIsProcessingAI(true);
+                while (true) {
+                    await new Promise(resolve => setTimeout(resolve, 400));
+                    try {
+                        const res = await fetch(`${API_BASE}/game/next-ai-action`);
+                        const data = await res.json();
+                        if (!data.action) break;
+                        setGame(data.action.game);
+                        if (!data.hasMore) break;
+                    } catch (err) {
+                        console.error('AI action error:', err);
+                        break;
+                    }
+                }
+                setIsProcessingAI(false);
+                try {
+                    const gtoRes = await fetch(`${API_BASE}/game/gto-recommendation`);
+                    const gtoData = await gtoRes.json();
+                    setGtoRecommendation(gtoData.recommendation);
+                } catch (err) {
+                    console.error('GTO fetch error:', err);
+                }
+            };
+
+            const startNewGame = useCallback(async () => {
+                setIsLoading(true);
+                setGtoRecommendation(null);
+                setFeedback(null);
+                try {
+                    const res = await fetch(`${API_BASE}/game/new`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' }
+                    });
+                    const data = await res.json();
+                    setGame(data.game);
+                    setBetAmount(data.game.blinds.bb * 3);
+                    setIsLoading(false);
+                    if (data.pendingActionsCount > 0) {
+                        await processAIActions();
+                    } else {
+                        const gtoRes = await fetch(`${API_BASE}/game/gto-recommendation`);
+                        const gtoData = await gtoRes.json();
+                        setGtoRecommendation(gtoData.recommendation);
+                    }
+                } catch (err) {
+                    console.error(err);
+                    setIsLoading(false);
+                }
+            }, []);
+
+            // アクション評価
+            const evaluateAction = (action, recommendation) => {
+                if (!recommendation) return null;
+                const { fold_percentage, call_percentage, raise_percentage } = recommendation;
+                const recs = [
+                    { action: 'fold', percentage: fold_percentage },
+                    { action: 'call', percentage: call_percentage },
+                    { action: 'check', percentage: call_percentage },
+                    { action: 'raise', percentage: raise_percentage }
+                ].sort((a, b) => b.percentage - a.percentage);
+
+                const primary = recs[0];
+                const secondary = recs[1];
+                const userActionType = action === 'check' ? 'call' : action;
+
+                if (userActionType === primary.action ||
+                    (userActionType === 'call' && primary.action === 'check')) {
+                    return {
+                        result: 'CORRECT',
+                        message: `素晴らしい！GTO推奨の${primary.action}を選択しました。`
+                    };
+                }
+                if (secondary && secondary.percentage >= 20 &&
+                    (userActionType === secondary.action ||
+                     (userActionType === 'call' && secondary.action === 'check'))) {
+                    return {
+                        result: 'ACCEPTABLE',
+                        message: `許容範囲内です。${secondary.action}は混合戦略の一部として${secondary.percentage}%の頻度で推奨されています。`
+                    };
+                }
+                return {
+                    result: 'ERROR',
+                    message: `GTO的には${primary.action}が${primary.percentage}%で推奨されています。選択したアクションはEVを損なう可能性があります。`
+                };
+            };
+
+            const performAction = async (action, amount) => {
+                // フィードバックを表示
+                if (gtoRecommendation) {
+                    const evaluation = evaluateAction(action, gtoRecommendation);
+                    if (evaluation) {
+                        setFeedback({
+                            ...evaluation,
+                            userAction: action === 'raise' ? `Raise ${amount}` : action.charAt(0).toUpperCase() + action.slice(1),
+                            gtoRecommendation
+                        });
+                    }
+                }
+
+                setIsLoading(true);
+                setGtoRecommendation(null);
+
+                try {
+                    const res = await fetch(`${API_BASE}/game/action`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ action, amount })
+                    });
+                    const data = await res.json();
+                    setGame(data.game);
+                    setIsLoading(false);
+
+                    if (!data.handComplete && data.pendingActionsCount > 0) {
+                        await processAIActions();
+                    } else if (!data.handComplete) {
+                        const gtoRes = await fetch(`${API_BASE}/game/gto-recommendation`);
+                        const gtoData = await gtoRes.json();
+                        setGtoRecommendation(gtoData.recommendation);
+                    }
+                } catch (err) {
+                    console.error(err);
+                    setIsLoading(false);
+                }
+            };
+
+            useEffect(() => { startNewGame(); }, [startNewGame]);
+
+            const hero = game?.players?.find(p => p.isHero);
+            const otherPlayers = game?.players?.filter(p => !p.isHero) || [];
+            const currentPlayer = game?.players?.[game?.currentPlayerIndex];
+            const isHeroTurn = currentPlayer?.isHero && !currentPlayer?.isFolded && !isProcessingAI;
+            const toCall = game ? Math.max(0, (game.currentBet || 0) - (hero?.currentBet || 0)) : 0;
+            const minRaise = game ? Math.max((game.currentBet || 0) * 2, (game.blinds?.bb || 100) * 2) : 200;
+            const pot = game?.pot || 0;
+
+            const seatClasses = ['seat-top', 'seat-left-top', 'seat-left-bottom', 'seat-right-bottom', 'seat-right-top'];
+
+            return (
+                <div className="game-container">
+                    {/* ヘッダー */}
+                    <header className="header">
+                        <div className="header-left">
+                            <span className="text-xl">🃏</span>
+                            <h1 className="text-white font-bold">GTO Poker Trainer</h1>
+                            <span className="text-gray-400 text-sm">
+                                SB/BB: {game?.blinds?.sb || 50}/{game?.blinds?.bb || 100}
+                            </span>
+                        </div>
+                        <div className="header-center">
+                            <button
+                                className={`toggle-btn ${showRangePanel ? 'active' : 'inactive'}`}
+                                onClick={() => setShowRangePanel(!showRangePanel)}
+                            >
+                                📊 レンジ
+                            </button>
+                            <button
+                                className={`toggle-btn ${showGTOPanel ? 'active' : 'inactive'}`}
+                                onClick={() => setShowGTOPanel(!showGTOPanel)}
+                            >
+                                🎯 GTO
+                            </button>
+                            <button
+                                onClick={startNewGame}
+                                className="bg-blue-600 text-white px-4 py-1.5 rounded text-sm font-medium hover:bg-blue-700 ml-2"
+                                disabled={isLoading || isProcessingAI}
+                            >
+                                新しいハンド
+                            </button>
+                        </div>
+                    </header>
+
+                    {/* コンテンツエリア */}
+                    <div className={contentClass}>
+                        {/* 左パネル - レンジ表 */}
+                        {showRangePanel && (
+                            <RangePanel
+                                heroPosition={hero?.position || 'UTG'}
+                                heroHand={hero?.holeCards}
+                                firstRaiser={game?.firstRaiserPosition}
+                                onClose={() => setShowRangePanel(false)}
+                            />
+                        )}
+
+                        {/* メインエリア */}
+                        <div className="main-area">
+                            {/* テーブル */}
+                            <div className="table-area">
+                                {game && (
+                                    <div className="poker-table">
+                                        <div className="table-felt">
+                                            <div className="community-area">
+                                                <div className="text-white text-sm mb-2">
+                                                    Pot: <span className="text-yellow-400 font-bold">{pot.toLocaleString()}</span>
+                                                </div>
+                                                <div className="community-cards">
+                                                    {[0,1,2,3,4].map(i => (
+                                                        game.communityCards[i] ? (
+                                                            <Card key={i} card={game.communityCards[i]} size="sm" />
+                                                        ) : (
+                                                            <div key={i} className="card card-sm" style={{border: '2px dashed rgba(255,255,255,0.2)', background: 'transparent'}} />
+                                                        )
+                                                    ))}
+                                                </div>
+                                                <div className="text-gray-300" style={{fontSize: '10px'}}>{game.currentStreet?.toUpperCase()}</div>
+                                            </div>
+                                        </div>
+                                        {otherPlayers.slice(0, 5).map((player, i) => (
+                                            <PlayerSeat
+                                                key={player.id}
+                                                player={player}
+                                                isActive={game.players.indexOf(player) === game.currentPlayerIndex}
+                                                seatClass={seatClasses[i]}
+                                            />
+                                        ))}
+                                    </div>
+                                )}
+                            </div>
+
+                            {/* ヒーローエリア */}
+                            <div className="hero-area">
+                                {hero && (
+                                    <>
+                                        <div className="hero-cards">
+                                            <Card card={hero.holeCards?.[0]} size="lg" />
+                                            <Card card={hero.holeCards?.[1]} size="lg" />
+                                        </div>
+                                        <div className="hero-info">
+                                            <div style={{marginBottom: '4px'}}>
+                                                <span className={`pos-badge pos-${hero.position}`}>{hero.position}</span>
+                                                <span className="text-white text-sm font-bold ml-2">あなた</span>
+                                            </div>
+                                            <div className="text-yellow-400 font-bold">{hero.stack.toLocaleString()}</div>
+                                            {hero.currentBet > 0 && (
+                                                <div className="text-green-400 text-sm">Bet: {hero.currentBet}</div>
+                                            )}
+                                        </div>
+                                    </>
+                                )}
+                            </div>
+
+                            {/* アクションエリア */}
+                            <div className="action-area">
+                                {isProcessingAI ? (
+                                    <div className="processing-indicator">
+                                        <div className="spinner" />
+                                        <span>{currentPlayer?.name || 'AI'} がアクション中...</span>
+                                    </div>
+                                ) : isHeroTurn ? (
+                                    <>
+                                        <div className="action-row">
+                                            <button className="action-btn btn-fold" onClick={() => performAction('fold')} disabled={isLoading}>
+                                                フォールド
+                                            </button>
+                                            <button
+                                                className={`action-btn ${toCall === 0 ? 'btn-check' : 'btn-call'}`}
+                                                onClick={() => performAction(toCall === 0 ? 'check' : 'call')}
+                                                disabled={isLoading}
+                                            >
+                                                {toCall === 0 ? 'チェック' : `コール ${toCall}`}
+                                            </button>
+                                            <button className="action-btn btn-raise" onClick={() => performAction('raise', betAmount)} disabled={isLoading}>
+                                                レイズ {betAmount}
+                                            </button>
+                                        </div>
+                                        <div className="action-row">
+                                            <button className="size-btn" onClick={() => setBetAmount(Math.floor(pot / 3))}>1/3</button>
+                                            <button className="size-btn" onClick={() => setBetAmount(Math.floor(pot * 2 / 3))}>2/3</button>
+                                            <button className="size-btn" onClick={() => setBetAmount(pot)}>Pot</button>
+                                            <button className="size-btn allin" onClick={() => setBetAmount(hero?.stack || 0)}>All-in</button>
+                                            <input
+                                                type="range"
+                                                className="bet-slider"
+                                                min={minRaise}
+                                                max={hero?.stack || 10000}
+                                                value={betAmount}
+                                                onChange={(e) => setBetAmount(Number(e.target.value))}
+                                            />
+                                            <input
+                                                type="number"
+                                                className="bet-input"
+                                                value={betAmount}
+                                                onChange={(e) => setBetAmount(Number(e.target.value))}
+                                            />
+                                        </div>
+                                    </>
+                                ) : (
+                                    <div className="waiting-message">
+                                        {game?.isHandComplete ? (
+                                            <div>
+                                                <span className="text-yellow-400 font-bold text-lg">ハンド終了！</span>
+                                                <button
+                                                    onClick={startNewGame}
+                                                    className="ml-4 bg-blue-600 text-white px-4 py-2 rounded font-medium hover:bg-blue-700"
+                                                >
+                                                    次のハンド
+                                                </button>
+                                            </div>
+                                        ) : (
+                                            <span>{currentPlayer?.name || 'AI'} のターン...</span>
+                                        )}
+                                    </div>
+                                )}
+                            </div>
+                        </div>
+
+                        {/* 右パネル - GTO推奨 */}
+                        {showGTOPanel && (
+                            <GTOPanel
+                                recommendation={isHeroTurn ? gtoRecommendation : null}
+                                onClose={() => setShowGTOPanel(false)}
+                            />
+                        )}
+                    </div>
+
+                    {/* フィードバックモーダル */}
+                    <FeedbackModal
+                        feedback={feedback}
+                        onClose={() => setFeedback(null)}
+                    />
+                </div>
+            );
+        }
+
+        ReactDOM.createRoot(document.getElementById('root')).render(<App />);
+    </script>
+</body>
+</html>
