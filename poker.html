@@ -1633,6 +1633,22 @@
                 setHandHistory([]);
             };
 
+            // 派生ステート（useEffectより前に定義）
+            const hero = game?.players?.find(p => p.isHero);
+            const otherPlayers = game?.players?.filter(p => !p.isHero) || [];
+            const currentPlayer = game?.players?.[game?.currentPlayerIndex];
+            const isHeroTurn = currentPlayer?.isHero && !currentPlayer?.isFolded && !isProcessingAI;
+            const toCall = game ? Math.max(0, (game.currentBet || 0) - (hero?.currentBet || 0)) : 0;
+            const pot = game?.pot || 0;
+
+            // キーボードショートカット用 ref（常に最新の関数を参照）
+            const performActionRef = useRef(performAction);
+            const nextHandRef = useRef(nextHand);
+            const calcRaiseAmountRef = useRef(calcRaiseAmount);
+            performActionRef.current = performAction;
+            nextHandRef.current = nextHand;
+            calcRaiseAmountRef.current = calcRaiseAmount;
+
             // キーボードショートカット
             useEffect(() => {
                 const handleKeyDown = (e) => {
@@ -1644,7 +1660,7 @@
                     if (game?.isHandComplete || feedback) {
                         if (e.code === 'Space' || e.key === ' ') {
                             e.preventDefault();
-                            nextHand();
+                            nextHandRef.current();
                         }
                         return;
                     }
@@ -1655,27 +1671,27 @@
                     switch (key) {
                         case 'f':
                             e.preventDefault();
-                            performAction('fold');
+                            performActionRef.current('fold');
                             break;
                         case 'c':
                             e.preventDefault();
-                            performAction(toCall === 0 ? 'check' : 'call');
+                            performActionRef.current(toCall === 0 ? 'check' : 'call');
                             break;
                         case 'r':
                             e.preventDefault();
-                            performAction('raise', betAmount);
+                            performActionRef.current('raise', betAmount);
                             break;
                         case '2':
                             e.preventDefault();
-                            setBetAmount(calcRaiseAmount(2));
+                            setBetAmount(calcRaiseAmountRef.current(2));
                             break;
                         case '3':
                             e.preventDefault();
-                            setBetAmount(calcRaiseAmount(3));
+                            setBetAmount(calcRaiseAmountRef.current(3));
                             break;
                         case '4':
                             e.preventDefault();
-                            setBetAmount(calcRaiseAmount(4));
+                            setBetAmount(calcRaiseAmountRef.current(4));
                             break;
                         case 'a':
                             e.preventDefault();
@@ -1685,16 +1701,9 @@
                 };
                 window.addEventListener('keydown', handleKeyDown);
                 return () => window.removeEventListener('keydown', handleKeyDown);
-            }, [game?.isHandComplete, feedback, isHeroTurn, toCall, betAmount, hero?.stack, nextHand]);
+            }, [game?.isHandComplete, feedback, isHeroTurn, toCall, betAmount, hero?.stack]);
 
             useEffect(() => { startNewGame(); }, [startNewGame]);
-
-            const hero = game?.players?.find(p => p.isHero);
-            const otherPlayers = game?.players?.filter(p => !p.isHero) || [];
-            const currentPlayer = game?.players?.[game?.currentPlayerIndex];
-            const isHeroTurn = currentPlayer?.isHero && !currentPlayer?.isFolded && !isProcessingAI;
-            const toCall = game ? Math.max(0, (game.currentBet || 0) - (hero?.currentBet || 0)) : 0;
-            const pot = game?.pot || 0;
 
             const getSeatClass = (playerIndex) => `seat-player-${playerIndex}`;
 
