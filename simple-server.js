@@ -1,714 +1,17 @@
-// GTO Poker Trainer - サーバー v3 (プリフロップ専用)
+// GTO Poker Trainer - サーバー v7 (Phase 1 リファクタリング - データ分離)
 import http from 'http';
+import {
+  RFI_RANGES,
+  VS_OPEN_RANGES,
+  DEFAULT_ACTION,
+  getRFIRange,
+  getVsOpenRange,
+  getHandAction,
+  getRange,
+  rangeToMatrix
+} from './gto-data.js';
 
 let gameState = null;
-
-// ============================================
-// GTOレンジデータ (ハードコード)
-// ============================================
-
-// RFIレンジ: 各ポジションからのオープンレンジ
-// 値: { fold, call, raise } の各パーセンテージ
-const RFI_RANGES = {
-  UTG: {
-    // ペア
-    'AA': { fold: 0, call: 0, raise: 100 },
-    'KK': { fold: 0, call: 0, raise: 100 },
-    'QQ': { fold: 0, call: 0, raise: 100 },
-    'JJ': { fold: 0, call: 0, raise: 100 },
-    'TT': { fold: 0, call: 0, raise: 100 },
-    '99': { fold: 0, call: 0, raise: 100 },
-    '88': { fold: 0, call: 0, raise: 100 },
-    '77': { fold: 20, call: 0, raise: 80 },
-    '66': { fold: 50, call: 0, raise: 50 },
-    '55': { fold: 70, call: 0, raise: 30 },
-    '44': { fold: 100, call: 0, raise: 0 },
-    '33': { fold: 100, call: 0, raise: 0 },
-    '22': { fold: 100, call: 0, raise: 0 },
-    // Ax suited
-    'AKs': { fold: 0, call: 0, raise: 100 },
-    'AQs': { fold: 0, call: 0, raise: 100 },
-    'AJs': { fold: 0, call: 0, raise: 100 },
-    'ATs': { fold: 0, call: 0, raise: 100 },
-    'A9s': { fold: 50, call: 0, raise: 50 },
-    'A8s': { fold: 70, call: 0, raise: 30 },
-    'A7s': { fold: 100, call: 0, raise: 0 },
-    'A6s': { fold: 100, call: 0, raise: 0 },
-    'A5s': { fold: 50, call: 0, raise: 50 },
-    'A4s': { fold: 70, call: 0, raise: 30 },
-    'A3s': { fold: 100, call: 0, raise: 0 },
-    'A2s': { fold: 100, call: 0, raise: 0 },
-    // Ax offsuit
-    'AKo': { fold: 0, call: 0, raise: 100 },
-    'AQo': { fold: 0, call: 0, raise: 100 },
-    'AJo': { fold: 20, call: 0, raise: 80 },
-    'ATo': { fold: 60, call: 0, raise: 40 },
-    // Kx suited
-    'KQs': { fold: 0, call: 0, raise: 100 },
-    'KJs': { fold: 0, call: 0, raise: 100 },
-    'KTs': { fold: 20, call: 0, raise: 80 },
-    'K9s': { fold: 100, call: 0, raise: 0 },
-    // Kx offsuit
-    'KQo': { fold: 30, call: 0, raise: 70 },
-    'KJo': { fold: 100, call: 0, raise: 0 },
-    // Broadway suited
-    'QJs': { fold: 20, call: 0, raise: 80 },
-    'QTs': { fold: 50, call: 0, raise: 50 },
-    'JTs': { fold: 50, call: 0, raise: 50 },
-  },
-
-  HJ: {
-    'AA': { fold: 0, call: 0, raise: 100 },
-    'KK': { fold: 0, call: 0, raise: 100 },
-    'QQ': { fold: 0, call: 0, raise: 100 },
-    'JJ': { fold: 0, call: 0, raise: 100 },
-    'TT': { fold: 0, call: 0, raise: 100 },
-    '99': { fold: 0, call: 0, raise: 100 },
-    '88': { fold: 0, call: 0, raise: 100 },
-    '77': { fold: 0, call: 0, raise: 100 },
-    '66': { fold: 30, call: 0, raise: 70 },
-    '55': { fold: 50, call: 0, raise: 50 },
-    '44': { fold: 80, call: 0, raise: 20 },
-    '33': { fold: 100, call: 0, raise: 0 },
-    '22': { fold: 100, call: 0, raise: 0 },
-    'AKs': { fold: 0, call: 0, raise: 100 },
-    'AQs': { fold: 0, call: 0, raise: 100 },
-    'AJs': { fold: 0, call: 0, raise: 100 },
-    'ATs': { fold: 0, call: 0, raise: 100 },
-    'A9s': { fold: 20, call: 0, raise: 80 },
-    'A8s': { fold: 40, call: 0, raise: 60 },
-    'A7s': { fold: 70, call: 0, raise: 30 },
-    'A6s': { fold: 80, call: 0, raise: 20 },
-    'A5s': { fold: 30, call: 0, raise: 70 },
-    'A4s': { fold: 50, call: 0, raise: 50 },
-    'A3s': { fold: 70, call: 0, raise: 30 },
-    'A2s': { fold: 80, call: 0, raise: 20 },
-    'AKo': { fold: 0, call: 0, raise: 100 },
-    'AQo': { fold: 0, call: 0, raise: 100 },
-    'AJo': { fold: 0, call: 0, raise: 100 },
-    'ATo': { fold: 40, call: 0, raise: 60 },
-    'KQs': { fold: 0, call: 0, raise: 100 },
-    'KJs': { fold: 0, call: 0, raise: 100 },
-    'KTs': { fold: 0, call: 0, raise: 100 },
-    'K9s': { fold: 60, call: 0, raise: 40 },
-    'KQo': { fold: 10, call: 0, raise: 90 },
-    'KJo': { fold: 50, call: 0, raise: 50 },
-    'QJs': { fold: 0, call: 0, raise: 100 },
-    'QTs': { fold: 30, call: 0, raise: 70 },
-    'JTs': { fold: 30, call: 0, raise: 70 },
-    'T9s': { fold: 60, call: 0, raise: 40 },
-  },
-
-  CO: {
-    'AA': { fold: 0, call: 0, raise: 100 },
-    'KK': { fold: 0, call: 0, raise: 100 },
-    'QQ': { fold: 0, call: 0, raise: 100 },
-    'JJ': { fold: 0, call: 0, raise: 100 },
-    'TT': { fold: 0, call: 0, raise: 100 },
-    '99': { fold: 0, call: 0, raise: 100 },
-    '88': { fold: 0, call: 0, raise: 100 },
-    '77': { fold: 0, call: 0, raise: 100 },
-    '66': { fold: 0, call: 0, raise: 100 },
-    '55': { fold: 20, call: 0, raise: 80 },
-    '44': { fold: 40, call: 0, raise: 60 },
-    '33': { fold: 60, call: 0, raise: 40 },
-    '22': { fold: 70, call: 0, raise: 30 },
-    'AKs': { fold: 0, call: 0, raise: 100 },
-    'AQs': { fold: 0, call: 0, raise: 100 },
-    'AJs': { fold: 0, call: 0, raise: 100 },
-    'ATs': { fold: 0, call: 0, raise: 100 },
-    'A9s': { fold: 0, call: 0, raise: 100 },
-    'A8s': { fold: 0, call: 0, raise: 100 },
-    'A7s': { fold: 20, call: 0, raise: 80 },
-    'A6s': { fold: 30, call: 0, raise: 70 },
-    'A5s': { fold: 0, call: 0, raise: 100 },
-    'A4s': { fold: 10, call: 0, raise: 90 },
-    'A3s': { fold: 30, call: 0, raise: 70 },
-    'A2s': { fold: 40, call: 0, raise: 60 },
-    'AKo': { fold: 0, call: 0, raise: 100 },
-    'AQo': { fold: 0, call: 0, raise: 100 },
-    'AJo': { fold: 0, call: 0, raise: 100 },
-    'ATo': { fold: 0, call: 0, raise: 100 },
-    'A9o': { fold: 50, call: 0, raise: 50 },
-    'A8o': { fold: 70, call: 0, raise: 30 },
-    'KQs': { fold: 0, call: 0, raise: 100 },
-    'KJs': { fold: 0, call: 0, raise: 100 },
-    'KTs': { fold: 0, call: 0, raise: 100 },
-    'K9s': { fold: 20, call: 0, raise: 80 },
-    'K8s': { fold: 50, call: 0, raise: 50 },
-    'K7s': { fold: 70, call: 0, raise: 30 },
-    'KQo': { fold: 0, call: 0, raise: 100 },
-    'KJo': { fold: 20, call: 0, raise: 80 },
-    'KTo': { fold: 50, call: 0, raise: 50 },
-    'QJs': { fold: 0, call: 0, raise: 100 },
-    'QTs': { fold: 0, call: 0, raise: 100 },
-    'Q9s': { fold: 40, call: 0, raise: 60 },
-    'QJo': { fold: 30, call: 0, raise: 70 },
-    'JTs': { fold: 0, call: 0, raise: 100 },
-    'J9s': { fold: 40, call: 0, raise: 60 },
-    'T9s': { fold: 20, call: 0, raise: 80 },
-    '98s': { fold: 40, call: 0, raise: 60 },
-    '87s': { fold: 50, call: 0, raise: 50 },
-    '76s': { fold: 60, call: 0, raise: 40 },
-  },
-
-  BTN: {
-    'AA': { fold: 0, call: 0, raise: 100 },
-    'KK': { fold: 0, call: 0, raise: 100 },
-    'QQ': { fold: 0, call: 0, raise: 100 },
-    'JJ': { fold: 0, call: 0, raise: 100 },
-    'TT': { fold: 0, call: 0, raise: 100 },
-    '99': { fold: 0, call: 0, raise: 100 },
-    '88': { fold: 0, call: 0, raise: 100 },
-    '77': { fold: 0, call: 0, raise: 100 },
-    '66': { fold: 0, call: 0, raise: 100 },
-    '55': { fold: 0, call: 0, raise: 100 },
-    '44': { fold: 0, call: 0, raise: 100 },
-    '33': { fold: 20, call: 0, raise: 80 },
-    '22': { fold: 30, call: 0, raise: 70 },
-    'AKs': { fold: 0, call: 0, raise: 100 },
-    'AQs': { fold: 0, call: 0, raise: 100 },
-    'AJs': { fold: 0, call: 0, raise: 100 },
-    'ATs': { fold: 0, call: 0, raise: 100 },
-    'A9s': { fold: 0, call: 0, raise: 100 },
-    'A8s': { fold: 0, call: 0, raise: 100 },
-    'A7s': { fold: 0, call: 0, raise: 100 },
-    'A6s': { fold: 0, call: 0, raise: 100 },
-    'A5s': { fold: 0, call: 0, raise: 100 },
-    'A4s': { fold: 0, call: 0, raise: 100 },
-    'A3s': { fold: 0, call: 0, raise: 100 },
-    'A2s': { fold: 0, call: 0, raise: 100 },
-    'AKo': { fold: 0, call: 0, raise: 100 },
-    'AQo': { fold: 0, call: 0, raise: 100 },
-    'AJo': { fold: 0, call: 0, raise: 100 },
-    'ATo': { fold: 0, call: 0, raise: 100 },
-    'A9o': { fold: 0, call: 0, raise: 100 },
-    'A8o': { fold: 20, call: 0, raise: 80 },
-    'A7o': { fold: 30, call: 0, raise: 70 },
-    'A6o': { fold: 40, call: 0, raise: 60 },
-    'A5o': { fold: 30, call: 0, raise: 70 },
-    'A4o': { fold: 40, call: 0, raise: 60 },
-    'A3o': { fold: 50, call: 0, raise: 50 },
-    'A2o': { fold: 60, call: 0, raise: 40 },
-    'KQs': { fold: 0, call: 0, raise: 100 },
-    'KJs': { fold: 0, call: 0, raise: 100 },
-    'KTs': { fold: 0, call: 0, raise: 100 },
-    'K9s': { fold: 0, call: 0, raise: 100 },
-    'K8s': { fold: 0, call: 0, raise: 100 },
-    'K7s': { fold: 10, call: 0, raise: 90 },
-    'K6s': { fold: 20, call: 0, raise: 80 },
-    'K5s': { fold: 30, call: 0, raise: 70 },
-    'K4s': { fold: 40, call: 0, raise: 60 },
-    'K3s': { fold: 50, call: 0, raise: 50 },
-    'K2s': { fold: 60, call: 0, raise: 40 },
-    'KQo': { fold: 0, call: 0, raise: 100 },
-    'KJo': { fold: 0, call: 0, raise: 100 },
-    'KTo': { fold: 0, call: 0, raise: 100 },
-    'K9o': { fold: 30, call: 0, raise: 70 },
-    'K8o': { fold: 50, call: 0, raise: 50 },
-    'K7o': { fold: 70, call: 0, raise: 30 },
-    'QJs': { fold: 0, call: 0, raise: 100 },
-    'QTs': { fold: 0, call: 0, raise: 100 },
-    'Q9s': { fold: 0, call: 0, raise: 100 },
-    'Q8s': { fold: 20, call: 0, raise: 80 },
-    'Q7s': { fold: 40, call: 0, raise: 60 },
-    'Q6s': { fold: 50, call: 0, raise: 50 },
-    'Q5s': { fold: 60, call: 0, raise: 40 },
-    'QJo': { fold: 0, call: 0, raise: 100 },
-    'QTo': { fold: 10, call: 0, raise: 90 },
-    'Q9o': { fold: 50, call: 0, raise: 50 },
-    'JTs': { fold: 0, call: 0, raise: 100 },
-    'J9s': { fold: 0, call: 0, raise: 100 },
-    'J8s': { fold: 20, call: 0, raise: 80 },
-    'J7s': { fold: 50, call: 0, raise: 50 },
-    'JTo': { fold: 10, call: 0, raise: 90 },
-    'J9o': { fold: 60, call: 0, raise: 40 },
-    'T9s': { fold: 0, call: 0, raise: 100 },
-    'T8s': { fold: 10, call: 0, raise: 90 },
-    'T7s': { fold: 40, call: 0, raise: 60 },
-    'T9o': { fold: 40, call: 0, raise: 60 },
-    '98s': { fold: 0, call: 0, raise: 100 },
-    '97s': { fold: 20, call: 0, raise: 80 },
-    '98o': { fold: 60, call: 0, raise: 40 },
-    '87s': { fold: 0, call: 0, raise: 100 },
-    '86s': { fold: 30, call: 0, raise: 70 },
-    '76s': { fold: 10, call: 0, raise: 90 },
-    '75s': { fold: 40, call: 0, raise: 60 },
-    '65s': { fold: 20, call: 0, raise: 80 },
-    '54s': { fold: 30, call: 0, raise: 70 },
-  },
-
-  SB: {
-    'AA': { fold: 0, call: 0, raise: 100 },
-    'KK': { fold: 0, call: 0, raise: 100 },
-    'QQ': { fold: 0, call: 0, raise: 100 },
-    'JJ': { fold: 0, call: 0, raise: 100 },
-    'TT': { fold: 0, call: 0, raise: 100 },
-    '99': { fold: 0, call: 0, raise: 100 },
-    '88': { fold: 0, call: 0, raise: 100 },
-    '77': { fold: 0, call: 0, raise: 100 },
-    '66': { fold: 0, call: 0, raise: 100 },
-    '55': { fold: 10, call: 0, raise: 90 },
-    '44': { fold: 20, call: 0, raise: 80 },
-    '33': { fold: 30, call: 0, raise: 70 },
-    '22': { fold: 40, call: 0, raise: 60 },
-    'AKs': { fold: 0, call: 0, raise: 100 },
-    'AQs': { fold: 0, call: 0, raise: 100 },
-    'AJs': { fold: 0, call: 0, raise: 100 },
-    'ATs': { fold: 0, call: 0, raise: 100 },
-    'A9s': { fold: 0, call: 0, raise: 100 },
-    'A8s': { fold: 0, call: 0, raise: 100 },
-    'A7s': { fold: 0, call: 0, raise: 100 },
-    'A6s': { fold: 0, call: 0, raise: 100 },
-    'A5s': { fold: 0, call: 0, raise: 100 },
-    'A4s': { fold: 0, call: 0, raise: 100 },
-    'A3s': { fold: 0, call: 0, raise: 100 },
-    'A2s': { fold: 0, call: 0, raise: 100 },
-    'AKo': { fold: 0, call: 0, raise: 100 },
-    'AQo': { fold: 0, call: 0, raise: 100 },
-    'AJo': { fold: 0, call: 0, raise: 100 },
-    'ATo': { fold: 0, call: 0, raise: 100 },
-    'A9o': { fold: 0, call: 0, raise: 100 },
-    'A8o': { fold: 10, call: 0, raise: 90 },
-    'A7o': { fold: 20, call: 0, raise: 80 },
-    'A6o': { fold: 30, call: 0, raise: 70 },
-    'A5o': { fold: 20, call: 0, raise: 80 },
-    'A4o': { fold: 30, call: 0, raise: 70 },
-    'A3o': { fold: 40, call: 0, raise: 60 },
-    'A2o': { fold: 50, call: 0, raise: 50 },
-    'KQs': { fold: 0, call: 0, raise: 100 },
-    'KJs': { fold: 0, call: 0, raise: 100 },
-    'KTs': { fold: 0, call: 0, raise: 100 },
-    'K9s': { fold: 0, call: 0, raise: 100 },
-    'K8s': { fold: 10, call: 0, raise: 90 },
-    'K7s': { fold: 20, call: 0, raise: 80 },
-    'K6s': { fold: 30, call: 0, raise: 70 },
-    'K5s': { fold: 40, call: 0, raise: 60 },
-    'K4s': { fold: 50, call: 0, raise: 50 },
-    'K3s': { fold: 60, call: 0, raise: 40 },
-    'K2s': { fold: 70, call: 0, raise: 30 },
-    'KQo': { fold: 0, call: 0, raise: 100 },
-    'KJo': { fold: 0, call: 0, raise: 100 },
-    'KTo': { fold: 10, call: 0, raise: 90 },
-    'K9o': { fold: 40, call: 0, raise: 60 },
-    'K8o': { fold: 60, call: 0, raise: 40 },
-    'QJs': { fold: 0, call: 0, raise: 100 },
-    'QTs': { fold: 0, call: 0, raise: 100 },
-    'Q9s': { fold: 10, call: 0, raise: 90 },
-    'Q8s': { fold: 30, call: 0, raise: 70 },
-    'Q7s': { fold: 50, call: 0, raise: 50 },
-    'Q6s': { fold: 60, call: 0, raise: 40 },
-    'Q5s': { fold: 50, call: 0, raise: 50 },
-    'QJo': { fold: 10, call: 0, raise: 90 },
-    'QTo': { fold: 30, call: 0, raise: 70 },
-    'Q9o': { fold: 60, call: 0, raise: 40 },
-    'JTs': { fold: 0, call: 0, raise: 100 },
-    'J9s': { fold: 10, call: 0, raise: 90 },
-    'J8s': { fold: 30, call: 0, raise: 70 },
-    'J7s': { fold: 60, call: 0, raise: 40 },
-    'JTo': { fold: 20, call: 0, raise: 80 },
-    'J9o': { fold: 60, call: 0, raise: 40 },
-    'T9s': { fold: 0, call: 0, raise: 100 },
-    'T8s': { fold: 20, call: 0, raise: 80 },
-    'T7s': { fold: 50, call: 0, raise: 50 },
-    'T9o': { fold: 50, call: 0, raise: 50 },
-    '98s': { fold: 10, call: 0, raise: 90 },
-    '97s': { fold: 30, call: 0, raise: 70 },
-    '87s': { fold: 20, call: 0, raise: 80 },
-    '86s': { fold: 40, call: 0, raise: 60 },
-    '76s': { fold: 30, call: 0, raise: 70 },
-    '75s': { fold: 50, call: 0, raise: 50 },
-    '65s': { fold: 40, call: 0, raise: 60 },
-    '54s': { fold: 50, call: 0, raise: 50 },
-  }
-};
-
-// VS OPEN レンジ: 各オープナーに対する3bet/コール/フォールド頻度
-const VS_OPEN_RANGES = {
-  // BBがSBのオープンに対して
-  BB_vs_SB: {
-    'AA': { fold: 0, call: 0, raise: 100 },
-    'KK': { fold: 0, call: 0, raise: 100 },
-    'QQ': { fold: 0, call: 0, raise: 100 },
-    'JJ': { fold: 0, call: 15, raise: 85 },
-    'TT': { fold: 0, call: 30, raise: 70 },
-    '99': { fold: 0, call: 50, raise: 50 },
-    '88': { fold: 0, call: 60, raise: 40 },
-    '77': { fold: 0, call: 70, raise: 30 },
-    '66': { fold: 10, call: 70, raise: 20 },
-    '55': { fold: 15, call: 70, raise: 15 },
-    '44': { fold: 25, call: 65, raise: 10 },
-    '33': { fold: 30, call: 60, raise: 10 },
-    '22': { fold: 35, call: 55, raise: 10 },
-    'AKs': { fold: 0, call: 0, raise: 100 },
-    'AQs': { fold: 0, call: 10, raise: 90 },
-    'AJs': { fold: 0, call: 25, raise: 75 },
-    'ATs': { fold: 0, call: 35, raise: 65 },
-    'A9s': { fold: 0, call: 50, raise: 50 },
-    'A8s': { fold: 0, call: 55, raise: 45 },
-    'A7s': { fold: 0, call: 60, raise: 40 },
-    'A6s': { fold: 0, call: 60, raise: 40 },
-    'A5s': { fold: 0, call: 40, raise: 60 },
-    'A4s': { fold: 0, call: 50, raise: 50 },
-    'A3s': { fold: 0, call: 55, raise: 45 },
-    'A2s': { fold: 0, call: 60, raise: 40 },
-    'AKo': { fold: 0, call: 0, raise: 100 },
-    'AQo': { fold: 0, call: 20, raise: 80 },
-    'AJo': { fold: 0, call: 40, raise: 60 },
-    'ATo': { fold: 0, call: 55, raise: 45 },
-    'A9o': { fold: 10, call: 60, raise: 30 },
-    'A8o': { fold: 15, call: 60, raise: 25 },
-    'A7o': { fold: 20, call: 60, raise: 20 },
-    'A6o': { fold: 25, call: 60, raise: 15 },
-    'A5o': { fold: 20, call: 55, raise: 25 },
-    'A4o': { fold: 25, call: 55, raise: 20 },
-    'A3o': { fold: 30, call: 55, raise: 15 },
-    'A2o': { fold: 35, call: 55, raise: 10 },
-    'KQs': { fold: 0, call: 20, raise: 80 },
-    'KJs': { fold: 0, call: 35, raise: 65 },
-    'KTs': { fold: 0, call: 45, raise: 55 },
-    'K9s': { fold: 0, call: 60, raise: 40 },
-    'K8s': { fold: 10, call: 65, raise: 25 },
-    'K7s': { fold: 15, call: 65, raise: 20 },
-    'K6s': { fold: 15, call: 65, raise: 20 },
-    'K5s': { fold: 20, call: 60, raise: 20 },
-    'K4s': { fold: 25, call: 60, raise: 15 },
-    'K3s': { fold: 30, call: 55, raise: 15 },
-    'K2s': { fold: 35, call: 55, raise: 10 },
-    'KQo': { fold: 0, call: 30, raise: 70 },
-    'KJo': { fold: 0, call: 50, raise: 50 },
-    'KTo': { fold: 5, call: 60, raise: 35 },
-    'K9o': { fold: 15, call: 65, raise: 20 },
-    'K8o': { fold: 30, call: 60, raise: 10 },
-    'K7o': { fold: 40, call: 55, raise: 5 },
-    'K6o': { fold: 50, call: 45, raise: 5 },
-    'K5o': { fold: 55, call: 40, raise: 5 },
-    'QJs': { fold: 0, call: 40, raise: 60 },
-    'QTs': { fold: 0, call: 50, raise: 50 },
-    'Q9s': { fold: 5, call: 60, raise: 35 },
-    'Q8s': { fold: 15, call: 65, raise: 20 },
-    'Q7s': { fold: 25, call: 60, raise: 15 },
-    'Q6s': { fold: 30, call: 55, raise: 15 },
-    'Q5s': { fold: 35, call: 50, raise: 15 },
-    'Q4s': { fold: 40, call: 50, raise: 10 },
-    'Q3s': { fold: 45, call: 45, raise: 10 },
-    'Q2s': { fold: 50, call: 40, raise: 10 },
-    'QJo': { fold: 5, call: 55, raise: 40 },
-    'QTo': { fold: 10, call: 60, raise: 30 },
-    'Q9o': { fold: 25, call: 60, raise: 15 },
-    'Q8o': { fold: 40, call: 50, raise: 10 },
-    'JTs': { fold: 0, call: 50, raise: 50 },
-    'J9s': { fold: 5, call: 60, raise: 35 },
-    'J8s': { fold: 15, call: 65, raise: 20 },
-    'J7s': { fold: 30, call: 55, raise: 15 },
-    'J6s': { fold: 40, call: 50, raise: 10 },
-    'JTo': { fold: 10, call: 60, raise: 30 },
-    'J9o': { fold: 25, call: 60, raise: 15 },
-    'J8o': { fold: 45, call: 45, raise: 10 },
-    'T9s': { fold: 0, call: 55, raise: 45 },
-    'T8s': { fold: 10, call: 65, raise: 25 },
-    'T7s': { fold: 25, call: 60, raise: 15 },
-    'T9o': { fold: 20, call: 60, raise: 20 },
-    '98s': { fold: 5, call: 60, raise: 35 },
-    '97s': { fold: 15, call: 65, raise: 20 },
-    '96s': { fold: 30, call: 55, raise: 15 },
-    '98o': { fold: 30, call: 55, raise: 15 },
-    '87s': { fold: 10, call: 60, raise: 30 },
-    '86s': { fold: 20, call: 60, raise: 20 },
-    '87o': { fold: 40, call: 50, raise: 10 },
-    '76s': { fold: 15, call: 60, raise: 25 },
-    '75s': { fold: 30, call: 55, raise: 15 },
-    '65s': { fold: 20, call: 60, raise: 20 },
-    '64s': { fold: 35, call: 50, raise: 15 },
-    '54s': { fold: 25, call: 55, raise: 20 },
-    '53s': { fold: 40, call: 45, raise: 15 },
-    '43s': { fold: 45, call: 45, raise: 10 },
-  },
-
-  // BBがBTNのオープンに対して
-  BB_vs_BTN: {
-    'AA': { fold: 0, call: 0, raise: 100 },
-    'KK': { fold: 0, call: 0, raise: 100 },
-    'QQ': { fold: 0, call: 10, raise: 90 },
-    'JJ': { fold: 0, call: 20, raise: 80 },
-    'TT': { fold: 0, call: 40, raise: 60 },
-    '99': { fold: 0, call: 60, raise: 40 },
-    '88': { fold: 0, call: 70, raise: 30 },
-    '77': { fold: 5, call: 75, raise: 20 },
-    '66': { fold: 15, call: 70, raise: 15 },
-    '55': { fold: 25, call: 65, raise: 10 },
-    '44': { fold: 35, call: 55, raise: 10 },
-    '33': { fold: 45, call: 50, raise: 5 },
-    '22': { fold: 55, call: 40, raise: 5 },
-    'AKs': { fold: 0, call: 0, raise: 100 },
-    'AQs': { fold: 0, call: 15, raise: 85 },
-    'AJs': { fold: 0, call: 35, raise: 65 },
-    'ATs': { fold: 0, call: 50, raise: 50 },
-    'A9s': { fold: 5, call: 60, raise: 35 },
-    'A8s': { fold: 10, call: 60, raise: 30 },
-    'A7s': { fold: 15, call: 60, raise: 25 },
-    'A6s': { fold: 20, call: 60, raise: 20 },
-    'A5s': { fold: 10, call: 55, raise: 35 },
-    'A4s': { fold: 15, call: 55, raise: 30 },
-    'A3s': { fold: 20, call: 55, raise: 25 },
-    'A2s': { fold: 25, call: 55, raise: 20 },
-    'AKo': { fold: 0, call: 5, raise: 95 },
-    'AQo': { fold: 0, call: 30, raise: 70 },
-    'AJo': { fold: 5, call: 50, raise: 45 },
-    'ATo': { fold: 15, call: 55, raise: 30 },
-    'A9o': { fold: 30, call: 55, raise: 15 },
-    'A8o': { fold: 40, call: 50, raise: 10 },
-    'A7o': { fold: 50, call: 45, raise: 5 },
-    'KQs': { fold: 0, call: 30, raise: 70 },
-    'KJs': { fold: 5, call: 45, raise: 50 },
-    'KTs': { fold: 10, call: 55, raise: 35 },
-    'K9s': { fold: 20, call: 60, raise: 20 },
-    'K8s': { fold: 35, call: 55, raise: 10 },
-    'K7s': { fold: 45, call: 50, raise: 5 },
-    'KQo': { fold: 5, call: 45, raise: 50 },
-    'KJo': { fold: 15, call: 55, raise: 30 },
-    'KTo': { fold: 30, call: 55, raise: 15 },
-    'K9o': { fold: 50, call: 45, raise: 5 },
-    'QJs': { fold: 5, call: 50, raise: 45 },
-    'QTs': { fold: 15, call: 55, raise: 30 },
-    'Q9s': { fold: 30, call: 55, raise: 15 },
-    'Q8s': { fold: 45, call: 45, raise: 10 },
-    'QJo': { fold: 20, call: 55, raise: 25 },
-    'QTo': { fold: 35, call: 55, raise: 10 },
-    'JTs': { fold: 10, call: 55, raise: 35 },
-    'J9s': { fold: 25, call: 55, raise: 20 },
-    'J8s': { fold: 40, call: 50, raise: 10 },
-    'JTo': { fold: 30, call: 55, raise: 15 },
-    'T9s': { fold: 15, call: 55, raise: 30 },
-    'T8s': { fold: 30, call: 55, raise: 15 },
-    '98s': { fold: 20, call: 55, raise: 25 },
-    '97s': { fold: 35, call: 50, raise: 15 },
-    '87s': { fold: 25, call: 55, raise: 20 },
-    '76s': { fold: 30, call: 55, raise: 15 },
-    '65s': { fold: 35, call: 50, raise: 15 },
-    '54s': { fold: 40, call: 50, raise: 10 },
-  },
-
-  // BBがCOのオープンに対して
-  BB_vs_CO: {
-    'AA': { fold: 0, call: 0, raise: 100 },
-    'KK': { fold: 0, call: 0, raise: 100 },
-    'QQ': { fold: 0, call: 5, raise: 95 },
-    'JJ': { fold: 0, call: 15, raise: 85 },
-    'TT': { fold: 0, call: 35, raise: 65 },
-    '99': { fold: 5, call: 55, raise: 40 },
-    '88': { fold: 10, call: 65, raise: 25 },
-    '77': { fold: 20, call: 65, raise: 15 },
-    '66': { fold: 30, call: 60, raise: 10 },
-    '55': { fold: 40, call: 55, raise: 5 },
-    '44': { fold: 55, call: 40, raise: 5 },
-    '33': { fold: 65, call: 30, raise: 5 },
-    '22': { fold: 75, call: 20, raise: 5 },
-    'AKs': { fold: 0, call: 0, raise: 100 },
-    'AQs': { fold: 0, call: 10, raise: 90 },
-    'AJs': { fold: 0, call: 30, raise: 70 },
-    'ATs': { fold: 5, call: 45, raise: 50 },
-    'A9s': { fold: 15, call: 55, raise: 30 },
-    'A8s': { fold: 25, call: 55, raise: 20 },
-    'A7s': { fold: 30, call: 55, raise: 15 },
-    'A6s': { fold: 35, call: 50, raise: 15 },
-    'A5s': { fold: 25, call: 50, raise: 25 },
-    'A4s': { fold: 30, call: 50, raise: 20 },
-    'A3s': { fold: 40, call: 45, raise: 15 },
-    'A2s': { fold: 45, call: 45, raise: 10 },
-    'AKo': { fold: 0, call: 0, raise: 100 },
-    'AQo': { fold: 0, call: 25, raise: 75 },
-    'AJo': { fold: 10, call: 50, raise: 40 },
-    'ATo': { fold: 25, call: 55, raise: 20 },
-    'A9o': { fold: 45, call: 45, raise: 10 },
-    'A8o': { fold: 55, call: 40, raise: 5 },
-    'KQs': { fold: 0, call: 25, raise: 75 },
-    'KJs': { fold: 10, call: 45, raise: 45 },
-    'KTs': { fold: 20, call: 55, raise: 25 },
-    'K9s': { fold: 35, call: 55, raise: 10 },
-    'K8s': { fold: 50, call: 45, raise: 5 },
-    'KQo': { fold: 10, call: 45, raise: 45 },
-    'KJo': { fold: 25, call: 55, raise: 20 },
-    'KTo': { fold: 40, call: 50, raise: 10 },
-    'QJs': { fold: 15, call: 50, raise: 35 },
-    'QTs': { fold: 25, call: 55, raise: 20 },
-    'Q9s': { fold: 45, call: 45, raise: 10 },
-    'QJo': { fold: 30, call: 55, raise: 15 },
-    'QTo': { fold: 50, call: 45, raise: 5 },
-    'JTs': { fold: 20, call: 55, raise: 25 },
-    'J9s': { fold: 40, call: 50, raise: 10 },
-    'JTo': { fold: 45, call: 50, raise: 5 },
-    'T9s': { fold: 30, call: 55, raise: 15 },
-    'T8s': { fold: 50, call: 45, raise: 5 },
-    '98s': { fold: 35, call: 55, raise: 10 },
-    '87s': { fold: 40, call: 50, raise: 10 },
-    '76s': { fold: 45, call: 45, raise: 10 },
-    '65s': { fold: 50, call: 45, raise: 5 },
-  },
-
-  // BBがHJのオープンに対して
-  BB_vs_HJ: {
-    'AA': { fold: 0, call: 0, raise: 100 },
-    'KK': { fold: 0, call: 0, raise: 100 },
-    'QQ': { fold: 0, call: 0, raise: 100 },
-    'JJ': { fold: 0, call: 10, raise: 90 },
-    'TT': { fold: 0, call: 30, raise: 70 },
-    '99': { fold: 10, call: 50, raise: 40 },
-    '88': { fold: 20, call: 60, raise: 20 },
-    '77': { fold: 35, call: 55, raise: 10 },
-    '66': { fold: 50, call: 45, raise: 5 },
-    '55': { fold: 65, call: 30, raise: 5 },
-    '44': { fold: 80, call: 15, raise: 5 },
-    '33': { fold: 90, call: 10, raise: 0 },
-    '22': { fold: 95, call: 5, raise: 0 },
-    'AKs': { fold: 0, call: 0, raise: 100 },
-    'AQs': { fold: 0, call: 5, raise: 95 },
-    'AJs': { fold: 0, call: 25, raise: 75 },
-    'ATs': { fold: 10, call: 40, raise: 50 },
-    'A9s': { fold: 30, call: 45, raise: 25 },
-    'A8s': { fold: 40, call: 45, raise: 15 },
-    'A7s': { fold: 50, call: 40, raise: 10 },
-    'A6s': { fold: 55, call: 35, raise: 10 },
-    'A5s': { fold: 40, call: 40, raise: 20 },
-    'A4s': { fold: 50, call: 35, raise: 15 },
-    'A3s': { fold: 60, call: 30, raise: 10 },
-    'A2s': { fold: 70, call: 25, raise: 5 },
-    'AKo': { fold: 0, call: 0, raise: 100 },
-    'AQo': { fold: 5, call: 20, raise: 75 },
-    'AJo': { fold: 20, call: 45, raise: 35 },
-    'ATo': { fold: 40, call: 45, raise: 15 },
-    'A9o': { fold: 65, call: 30, raise: 5 },
-    'KQs': { fold: 5, call: 20, raise: 75 },
-    'KJs': { fold: 15, call: 40, raise: 45 },
-    'KTs': { fold: 30, call: 50, raise: 20 },
-    'K9s': { fold: 50, call: 45, raise: 5 },
-    'KQo': { fold: 15, call: 40, raise: 45 },
-    'KJo': { fold: 35, call: 50, raise: 15 },
-    'KTo': { fold: 55, call: 40, raise: 5 },
-    'QJs': { fold: 25, call: 45, raise: 30 },
-    'QTs': { fold: 35, call: 50, raise: 15 },
-    'Q9s': { fold: 60, call: 35, raise: 5 },
-    'QJo': { fold: 45, call: 45, raise: 10 },
-    'JTs': { fold: 30, call: 50, raise: 20 },
-    'J9s': { fold: 55, call: 40, raise: 5 },
-    'JTo': { fold: 55, call: 40, raise: 5 },
-    'T9s': { fold: 45, call: 45, raise: 10 },
-    '98s': { fold: 50, call: 45, raise: 5 },
-    '87s': { fold: 55, call: 40, raise: 5 },
-    '76s': { fold: 60, call: 35, raise: 5 },
-  },
-
-  // BBがUTGのオープンに対して
-  BB_vs_UTG: {
-    'AA': { fold: 0, call: 0, raise: 100 },
-    'KK': { fold: 0, call: 0, raise: 100 },
-    'QQ': { fold: 0, call: 0, raise: 100 },
-    'JJ': { fold: 0, call: 5, raise: 95 },
-    'TT': { fold: 5, call: 25, raise: 70 },
-    '99': { fold: 20, call: 45, raise: 35 },
-    '88': { fold: 35, call: 50, raise: 15 },
-    '77': { fold: 55, call: 40, raise: 5 },
-    '66': { fold: 70, call: 25, raise: 5 },
-    '55': { fold: 85, call: 10, raise: 5 },
-    '44': { fold: 95, call: 5, raise: 0 },
-    '33': { fold: 100, call: 0, raise: 0 },
-    '22': { fold: 100, call: 0, raise: 0 },
-    'AKs': { fold: 0, call: 0, raise: 100 },
-    'AQs': { fold: 0, call: 0, raise: 100 },
-    'AJs': { fold: 5, call: 20, raise: 75 },
-    'ATs': { fold: 20, call: 35, raise: 45 },
-    'A9s': { fold: 50, call: 35, raise: 15 },
-    'A8s': { fold: 65, call: 30, raise: 5 },
-    'A7s': { fold: 75, call: 20, raise: 5 },
-    'A6s': { fold: 80, call: 15, raise: 5 },
-    'A5s': { fold: 60, call: 30, raise: 10 },
-    'A4s': { fold: 70, call: 25, raise: 5 },
-    'A3s': { fold: 80, call: 15, raise: 5 },
-    'A2s': { fold: 90, call: 10, raise: 0 },
-    'AKo': { fold: 0, call: 0, raise: 100 },
-    'AQo': { fold: 5, call: 15, raise: 80 },
-    'AJo': { fold: 35, call: 40, raise: 25 },
-    'ATo': { fold: 60, call: 35, raise: 5 },
-    'A9o': { fold: 85, call: 15, raise: 0 },
-    'KQs': { fold: 10, call: 15, raise: 75 },
-    'KJs': { fold: 25, call: 35, raise: 40 },
-    'KTs': { fold: 45, call: 40, raise: 15 },
-    'K9s': { fold: 70, call: 25, raise: 5 },
-    'KQo': { fold: 25, call: 35, raise: 40 },
-    'KJo': { fold: 50, call: 40, raise: 10 },
-    'KTo': { fold: 75, call: 20, raise: 5 },
-    'QJs': { fold: 35, call: 40, raise: 25 },
-    'QTs': { fold: 50, call: 40, raise: 10 },
-    'Q9s': { fold: 75, call: 20, raise: 5 },
-    'QJo': { fold: 60, call: 35, raise: 5 },
-    'JTs': { fold: 45, call: 45, raise: 10 },
-    'J9s': { fold: 70, call: 25, raise: 5 },
-    'T9s': { fold: 60, call: 35, raise: 5 },
-    '98s': { fold: 65, call: 30, raise: 5 },
-    '87s': { fold: 70, call: 25, raise: 5 },
-    '76s': { fold: 75, call: 20, raise: 5 },
-  },
-
-  // SBがBTNのオープンに対して
-  SB_vs_BTN: {
-    'AA': { fold: 0, call: 0, raise: 100 },
-    'KK': { fold: 0, call: 0, raise: 100 },
-    'QQ': { fold: 0, call: 0, raise: 100 },
-    'JJ': { fold: 0, call: 10, raise: 90 },
-    'TT': { fold: 0, call: 25, raise: 75 },
-    '99': { fold: 0, call: 40, raise: 60 },
-    '88': { fold: 5, call: 55, raise: 40 },
-    '77': { fold: 15, call: 60, raise: 25 },
-    '66': { fold: 30, call: 55, raise: 15 },
-    '55': { fold: 45, call: 45, raise: 10 },
-    '44': { fold: 60, call: 35, raise: 5 },
-    '33': { fold: 75, call: 20, raise: 5 },
-    '22': { fold: 85, call: 10, raise: 5 },
-    'AKs': { fold: 0, call: 0, raise: 100 },
-    'AQs': { fold: 0, call: 5, raise: 95 },
-    'AJs': { fold: 0, call: 20, raise: 80 },
-    'ATs': { fold: 0, call: 35, raise: 65 },
-    'A9s': { fold: 10, call: 50, raise: 40 },
-    'A8s': { fold: 20, call: 50, raise: 30 },
-    'A7s': { fold: 30, call: 50, raise: 20 },
-    'A6s': { fold: 35, call: 45, raise: 20 },
-    'A5s': { fold: 20, call: 45, raise: 35 },
-    'A4s': { fold: 30, call: 45, raise: 25 },
-    'A3s': { fold: 40, call: 40, raise: 20 },
-    'A2s': { fold: 50, call: 35, raise: 15 },
-    'AKo': { fold: 0, call: 0, raise: 100 },
-    'AQo': { fold: 0, call: 15, raise: 85 },
-    'AJo': { fold: 10, call: 40, raise: 50 },
-    'ATo': { fold: 25, call: 50, raise: 25 },
-    'A9o': { fold: 50, call: 40, raise: 10 },
-    'A8o': { fold: 65, call: 30, raise: 5 },
-    'KQs': { fold: 0, call: 15, raise: 85 },
-    'KJs': { fold: 10, call: 35, raise: 55 },
-    'KTs': { fold: 20, call: 45, raise: 35 },
-    'K9s': { fold: 40, call: 45, raise: 15 },
-    'K8s': { fold: 55, call: 35, raise: 10 },
-    'KQo': { fold: 10, call: 35, raise: 55 },
-    'KJo': { fold: 25, call: 50, raise: 25 },
-    'KTo': { fold: 45, call: 45, raise: 10 },
-    'QJs': { fold: 15, call: 40, raise: 45 },
-    'QTs': { fold: 25, call: 50, raise: 25 },
-    'Q9s': { fold: 45, call: 45, raise: 10 },
-    'QJo': { fold: 30, call: 50, raise: 20 },
-    'QTo': { fold: 50, call: 40, raise: 10 },
-    'JTs': { fold: 20, call: 50, raise: 30 },
-    'J9s': { fold: 40, call: 50, raise: 10 },
-    'JTo': { fold: 45, call: 45, raise: 10 },
-    'T9s': { fold: 30, call: 55, raise: 15 },
-    'T8s': { fold: 50, call: 40, raise: 10 },
-    '98s': { fold: 40, call: 50, raise: 10 },
-    '87s': { fold: 45, call: 45, raise: 10 },
-    '76s': { fold: 50, call: 40, raise: 10 },
-    '65s': { fold: 55, call: 35, raise: 10 },
-  }
-};
-
-// デフォルトレンジ（データにないハンドはフォールド）
-const DEFAULT_RANGE = { fold: 100, call: 0, raise: 0 };
 
 // ============================================
 // ユーティリティ関数
@@ -754,12 +57,6 @@ function getHandNotation(cards) {
   return r1 + r2 + suited;
 }
 
-// BTNの席インデックスからプレイヤーのポジションを計算
-function getPositionForSeat(seatIndex, btnSeatIndex) {
-  const relativePosition = (seatIndex - btnSeatIndex + 6) % 6;
-  return POSITIONS[relativePosition];
-}
-
 // プリフロップアクション順序でプレイヤーをソート
 function getActionOrder(players) {
   return [...players]
@@ -775,25 +72,30 @@ function getActionOrder(players) {
 // ゲーム管理
 // ============================================
 
-function createGame(handNumber = 1, btnSeatIndex = 0, heroSeatIndex = null) {
+// ポジション計算: BTNを持つプレイヤーからの距離でポジションを決定
+function getPositionForPlayer(btnPlayerIndex, playerIndex) {
+  // BTNからの距離（左回りで何番目か）
+  const distance = (playerIndex - btnPlayerIndex + 6) % 6;
+  return POSITIONS[distance]; // POSITIONS = ['BTN', 'SB', 'BB', 'UTG', 'HJ', 'CO']
+}
+
+function createGame(handNumber = 1, btnPlayerIndex = 0) {
   const deck = createDeck();
 
-  // ヒーローの席（指定なければランダム）
-  if (heroSeatIndex === null) {
-    heroSeatIndex = Math.floor(Math.random() * 6);
-  }
+  // Hero は常に Player 0（インデックス0）
+  const heroPlayerIndex = 0;
 
-  const players = SEAT_ORDER.map((seatIndex) => {
+  const players = SEAT_ORDER.map((playerIndex) => {
     const holeCards = [deck.pop(), deck.pop()];
-    const position = getPositionForSeat(seatIndex, btnSeatIndex);
+    const position = getPositionForPlayer(btnPlayerIndex, playerIndex);
     return {
-      id: `player-${seatIndex}`,
-      seatIndex: seatIndex,
-      name: seatIndex === heroSeatIndex ? 'Hero' : `Player ${seatIndex + 1}`,
+      id: `player-${playerIndex}`,
+      playerIndex: playerIndex,
+      name: playerIndex === heroPlayerIndex ? 'あなた' : `Player ${playerIndex + 1}`,
       position: position,
       stack: 10000,
       holeCards: holeCards,
-      isHero: seatIndex === heroSeatIndex,
+      isHero: playerIndex === heroPlayerIndex,
       isActive: true,
       isFolded: false,
       isAllIn: false,
@@ -828,8 +130,8 @@ function createGame(handNumber = 1, btnSeatIndex = 0, heroSeatIndex = null) {
     sidePots: [],
     currentStreet: 'preflop',
     currentPlayerIndex: startIndex,
-    btnSeatIndex: btnSeatIndex,
-    heroSeatIndex: heroSeatIndex,
+    btnPlayerIndex: btnPlayerIndex,
+    heroPlayerIndex: heroPlayerIndex,
     blinds: { sb: 50, bb: 100 },
     ante: 0,
     actionHistory: [
@@ -853,13 +155,12 @@ function createGame(handNumber = 1, btnSeatIndex = 0, heroSeatIndex = null) {
   return gameState;
 }
 
-// 次のハンドへ（BTNを右回り）
+// 次のハンドへ（BTNを左に1つ移動 = playerIndex +1）
 function nextHand() {
-  const newBtnSeatIndex = (gameState.btnSeatIndex + 1) % 6;
+  const newBtnPlayerIndex = (gameState.btnPlayerIndex + 1) % 6;
   const newHandNumber = gameState.handNumber + 1;
-  const heroSeatIndex = gameState.heroSeatIndex;
 
-  return createGame(newHandNumber, newBtnSeatIndex, heroSeatIndex);
+  return createGame(newHandNumber, newBtnPlayerIndex);
 }
 
 // ============================================
@@ -955,7 +256,7 @@ function decideAIAction(player, state) {
     situationKey = `VS_${openerPosition}`;
   }
 
-  const actions = rangeData[handNotation] || DEFAULT_RANGE;
+  const actions = rangeData[handNotation] || DEFAULT_ACTION;
 
   // 確率に基づいてアクションを決定
   const rand = Math.random() * 100;
@@ -1059,15 +360,24 @@ function getNextAIAction() {
   // 次のプレイヤーへ
   gameState.currentPlayerIndex = getNextPlayerIndex(playerIndex, gameState.players);
 
-  // ハンド終了チェック
-  if (countActivePlayers(gameState) <= 1) {
+  // 自分以外全員フォールドチェック
+  const activePlayers = gameState.players.filter(p => !p.isFolded && p.isActive);
+  const heroWins = activePlayers.length === 1 && activePlayers[0].isHero;
+
+  if (heroWins) {
+    // ヒーローの自動勝利
+    gameState.isHandComplete = true;
+    gameState.heroAutoWin = true;
+    gameState.pendingAIActions = []; // 残りのAIアクションをクリア
+  } else if (countActivePlayers(gameState) <= 1) {
     gameState.isHandComplete = true;
   }
 
   return {
     ...action,
     game: gameState,
-    remainingActions: gameState.pendingAIActions.length
+    remainingActions: gameState.pendingAIActions.length,
+    heroAutoWin: heroWins
   };
 }
 
@@ -1089,7 +399,7 @@ function checkHandComplete() {
 }
 
 // ============================================
-// GTO推奨（ハードコードデータから）
+// GTO推奨（gto-data.jsのデータを使用）
 // ============================================
 
 function getGTORecommendation() {
@@ -1121,7 +431,7 @@ function getGTORecommendation() {
     situationDescription = `${openerPosition}のオープンに対する${position}のアクション`;
   }
 
-  const actions = rangeData[handNotation] || DEFAULT_RANGE;
+  const actions = rangeData[handNotation] || DEFAULT_ACTION;
 
   // 状況分析を生成
   const situation_analysis = [];
@@ -1302,10 +612,90 @@ const server = http.createServer((req, res) => {
     return;
   }
 
+  // ============================================
+  // 新規API: レンジデータ取得
+  // ============================================
+
+  // レンジデータを取得 (Phase 1 新規API)
+  if (url.startsWith('/api/range') && req.method === 'GET') {
+    const urlObj = new URL(url, 'http://localhost');
+    const type = urlObj.searchParams.get('type') || 'RFI';
+    const heroPosition = urlObj.searchParams.get('heroPosition');
+    const openerPosition = urlObj.searchParams.get('openerPosition');
+
+    let range;
+    let title;
+
+    if (type === 'RFI') {
+      range = getRFIRange(heroPosition);
+      title = `${heroPosition} RFI`;
+    } else if (type === 'VS_OPEN') {
+      range = getVsOpenRange(heroPosition, openerPosition);
+      title = `${heroPosition} vs ${openerPosition} Open`;
+    } else {
+      res.writeHead(400, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ error: 'Invalid type. Use RFI or VS_OPEN' }));
+      return;
+    }
+
+    const matrix = rangeToMatrix(range);
+
+    res.writeHead(200, { 'Content-Type': 'application/json' });
+    res.end(JSON.stringify({
+      success: true,
+      type,
+      heroPosition,
+      openerPosition,
+      title,
+      range,
+      matrix
+    }));
+    return;
+  }
+
+  // ハンドアクションを取得 (Phase 1 新規API)
+  if (url.startsWith('/api/hand-action') && req.method === 'GET') {
+    const urlObj = new URL(url, 'http://localhost');
+    const type = urlObj.searchParams.get('type') || 'RFI';
+    const heroPosition = urlObj.searchParams.get('heroPosition');
+    const openerPosition = urlObj.searchParams.get('openerPosition');
+    const hand = urlObj.searchParams.get('hand');
+
+    if (!hand) {
+      res.writeHead(400, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ error: 'hand parameter is required' }));
+      return;
+    }
+
+    let range;
+    if (type === 'RFI') {
+      range = getRFIRange(heroPosition);
+    } else if (type === 'VS_OPEN') {
+      range = getVsOpenRange(heroPosition, openerPosition);
+    } else {
+      res.writeHead(400, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ error: 'Invalid type. Use RFI or VS_OPEN' }));
+      return;
+    }
+
+    const action = getHandAction(range, hand);
+
+    res.writeHead(200, { 'Content-Type': 'application/json' });
+    res.end(JSON.stringify({
+      success: true,
+      type,
+      heroPosition,
+      openerPosition,
+      hand,
+      action
+    }));
+    return;
+  }
+
   res.writeHead(404);
   res.end('Not found');
 });
 
 server.listen(3001, () => {
-  console.log('🃏 GTO Poker Server v3 (Preflop Only) running on http://localhost:3001');
+  console.log('GTO Poker Server v7 running on http://localhost:3001');
 });

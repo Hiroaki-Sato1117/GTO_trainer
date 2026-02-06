@@ -1,0 +1,692 @@
+// gto-data.js
+// GTO プリフロップデータ - 全データを一元管理
+
+// デフォルト値（未定義ハンド用）
+export const DEFAULT_ACTION = { fold: 100, call: 0, raise: 0 };
+
+// ============================================
+// RFI (Raise First In) レンジ
+// ============================================
+
+export const UTG_RFI = {
+  // ポケットペア
+  'AA': { fold: 0, call: 0, raise: 100 },
+  'KK': { fold: 0, call: 0, raise: 100 },
+  'QQ': { fold: 0, call: 0, raise: 100 },
+  'JJ': { fold: 0, call: 0, raise: 100 },
+  'TT': { fold: 0, call: 0, raise: 100 },
+  '99': { fold: 0, call: 0, raise: 100 },
+  '88': { fold: 0, call: 0, raise: 100 },
+  '77': { fold: 0, call: 0, raise: 100 },
+  '66': { fold: 0, call: 0, raise: 100 },
+  '55': { fold: 50, call: 0, raise: 50 },
+  '44': { fold: 100, call: 0, raise: 0 },
+  '33': { fold: 100, call: 0, raise: 0 },
+  '22': { fold: 100, call: 0, raise: 0 },
+
+  // Ax スーテッド
+  'AKs': { fold: 0, call: 0, raise: 100 },
+  'AQs': { fold: 0, call: 0, raise: 100 },
+  'AJs': { fold: 0, call: 0, raise: 100 },
+  'ATs': { fold: 0, call: 0, raise: 100 },
+  'A9s': { fold: 50, call: 0, raise: 50 },
+  'A8s': { fold: 100, call: 0, raise: 0 },
+  'A7s': { fold: 100, call: 0, raise: 0 },
+  'A6s': { fold: 100, call: 0, raise: 0 },
+  'A5s': { fold: 0, call: 0, raise: 100 },
+  'A4s': { fold: 50, call: 0, raise: 50 },
+  'A3s': { fold: 0, call: 0, raise: 100 },
+  'A2s': { fold: 100, call: 0, raise: 0 },
+
+  // Ax オフスート
+  'AKo': { fold: 0, call: 0, raise: 100 },
+  'AQo': { fold: 0, call: 0, raise: 100 },
+  'AJo': { fold: 0, call: 0, raise: 100 },
+  'ATo': { fold: 0, call: 0, raise: 100 },
+  'A9o': { fold: 100, call: 0, raise: 0 },
+  'A8o': { fold: 100, call: 0, raise: 0 },
+  'A7o': { fold: 100, call: 0, raise: 0 },
+  'A6o': { fold: 100, call: 0, raise: 0 },
+  'A5o': { fold: 100, call: 0, raise: 0 },
+  'A4o': { fold: 100, call: 0, raise: 0 },
+  'A3o': { fold: 100, call: 0, raise: 0 },
+  'A2o': { fold: 100, call: 0, raise: 0 },
+
+  // Kx スーテッド
+  'KQs': { fold: 0, call: 0, raise: 100 },
+  'KJs': { fold: 0, call: 0, raise: 100 },
+  'KTs': { fold: 0, call: 0, raise: 100 },
+  'K9s': { fold: 50, call: 0, raise: 50 },
+  'K8s': { fold: 100, call: 0, raise: 0 },
+  'K7s': { fold: 100, call: 0, raise: 0 },
+  'K6s': { fold: 100, call: 0, raise: 0 },
+  'K5s': { fold: 100, call: 0, raise: 0 },
+  'K4s': { fold: 100, call: 0, raise: 0 },
+  'K3s': { fold: 100, call: 0, raise: 0 },
+  'K2s': { fold: 100, call: 0, raise: 0 },
+
+  // Kx オフスート
+  'KQo': { fold: 0, call: 0, raise: 100 },
+  'KJo': { fold: 0, call: 0, raise: 100 },
+  'KTo': { fold: 100, call: 0, raise: 0 },
+  'K9o': { fold: 100, call: 0, raise: 0 },
+  'K8o': { fold: 100, call: 0, raise: 0 },
+  'K7o': { fold: 100, call: 0, raise: 0 },
+  'K6o': { fold: 100, call: 0, raise: 0 },
+  'K5o': { fold: 100, call: 0, raise: 0 },
+  'K4o': { fold: 100, call: 0, raise: 0 },
+  'K3o': { fold: 100, call: 0, raise: 0 },
+  'K2o': { fold: 100, call: 0, raise: 0 },
+
+  // Qx スーテッド
+  'QJs': { fold: 0, call: 0, raise: 100 },
+  'QTs': { fold: 0, call: 0, raise: 100 },
+  'Q9s': { fold: 0, call: 0, raise: 100 },
+  'Q8s': { fold: 100, call: 0, raise: 0 },
+  'Q7s': { fold: 100, call: 0, raise: 0 },
+  'Q6s': { fold: 100, call: 0, raise: 0 },
+  'Q5s': { fold: 100, call: 0, raise: 0 },
+  'Q4s': { fold: 100, call: 0, raise: 0 },
+  'Q3s': { fold: 100, call: 0, raise: 0 },
+  'Q2s': { fold: 100, call: 0, raise: 0 },
+
+  // Qx オフスート
+  'QJo': { fold: 0, call: 0, raise: 100 },
+  'QTo': { fold: 100, call: 0, raise: 0 },
+  'Q9o': { fold: 100, call: 0, raise: 0 },
+  'Q8o': { fold: 100, call: 0, raise: 0 },
+  'Q7o': { fold: 100, call: 0, raise: 0 },
+  'Q6o': { fold: 100, call: 0, raise: 0 },
+  'Q5o': { fold: 100, call: 0, raise: 0 },
+  'Q4o': { fold: 100, call: 0, raise: 0 },
+  'Q3o': { fold: 100, call: 0, raise: 0 },
+  'Q2o': { fold: 100, call: 0, raise: 0 },
+
+  // Jx スーテッド
+  'JTs': { fold: 0, call: 0, raise: 100 },
+  'J9s': { fold: 0, call: 0, raise: 100 },
+  'J8s': { fold: 100, call: 0, raise: 0 },
+  'J7s': { fold: 100, call: 0, raise: 0 },
+  'J6s': { fold: 100, call: 0, raise: 0 },
+  'J5s': { fold: 100, call: 0, raise: 0 },
+  'J4s': { fold: 100, call: 0, raise: 0 },
+  'J3s': { fold: 100, call: 0, raise: 0 },
+  'J2s': { fold: 100, call: 0, raise: 0 },
+
+  // Jx オフスート - 全てフォールド
+  'JTo': { fold: 100, call: 0, raise: 0 },
+  'J9o': { fold: 100, call: 0, raise: 0 },
+  'J8o': { fold: 100, call: 0, raise: 0 },
+  'J7o': { fold: 100, call: 0, raise: 0 },
+  'J6o': { fold: 100, call: 0, raise: 0 },
+  'J5o': { fold: 100, call: 0, raise: 0 },
+  'J4o': { fold: 100, call: 0, raise: 0 },
+  'J3o': { fold: 100, call: 0, raise: 0 },
+  'J2o': { fold: 100, call: 0, raise: 0 },
+
+  // Tx スーテッド
+  'T9s': { fold: 0, call: 0, raise: 100 },
+  'T8s': { fold: 100, call: 0, raise: 0 },
+  'T7s': { fold: 100, call: 0, raise: 0 },
+  'T6s': { fold: 100, call: 0, raise: 0 },
+  'T5s': { fold: 100, call: 0, raise: 0 },
+  'T4s': { fold: 100, call: 0, raise: 0 },
+  'T3s': { fold: 100, call: 0, raise: 0 },
+  'T2s': { fold: 100, call: 0, raise: 0 },
+
+  // Tx オフスート - 全てフォールド
+  'T9o': { fold: 100, call: 0, raise: 0 },
+  'T8o': { fold: 100, call: 0, raise: 0 },
+  'T7o': { fold: 100, call: 0, raise: 0 },
+  'T6o': { fold: 100, call: 0, raise: 0 },
+  'T5o': { fold: 100, call: 0, raise: 0 },
+  'T4o': { fold: 100, call: 0, raise: 0 },
+  'T3o': { fold: 100, call: 0, raise: 0 },
+  'T2o': { fold: 100, call: 0, raise: 0 },
+};
+
+export const HJ_RFI = {
+  'AA': { fold: 0, call: 0, raise: 100 },
+  'KK': { fold: 0, call: 0, raise: 100 },
+  'QQ': { fold: 0, call: 0, raise: 100 },
+  'JJ': { fold: 0, call: 0, raise: 100 },
+  'TT': { fold: 0, call: 0, raise: 100 },
+  '99': { fold: 0, call: 0, raise: 100 },
+  '88': { fold: 0, call: 0, raise: 100 },
+  '77': { fold: 0, call: 0, raise: 100 },
+  '66': { fold: 30, call: 0, raise: 70 },
+  '55': { fold: 50, call: 0, raise: 50 },
+  '44': { fold: 80, call: 0, raise: 20 },
+  '33': { fold: 100, call: 0, raise: 0 },
+  '22': { fold: 100, call: 0, raise: 0 },
+  'AKs': { fold: 0, call: 0, raise: 100 },
+  'AQs': { fold: 0, call: 0, raise: 100 },
+  'AJs': { fold: 0, call: 0, raise: 100 },
+  'ATs': { fold: 0, call: 0, raise: 100 },
+  'A9s': { fold: 20, call: 0, raise: 80 },
+  'A8s': { fold: 40, call: 0, raise: 60 },
+  'A7s': { fold: 70, call: 0, raise: 30 },
+  'A6s': { fold: 80, call: 0, raise: 20 },
+  'A5s': { fold: 30, call: 0, raise: 70 },
+  'A4s': { fold: 50, call: 0, raise: 50 },
+  'A3s': { fold: 70, call: 0, raise: 30 },
+  'A2s': { fold: 80, call: 0, raise: 20 },
+  'AKo': { fold: 0, call: 0, raise: 100 },
+  'AQo': { fold: 0, call: 0, raise: 100 },
+  'AJo': { fold: 0, call: 0, raise: 100 },
+  'ATo': { fold: 40, call: 0, raise: 60 },
+  'KQs': { fold: 0, call: 0, raise: 100 },
+  'KJs': { fold: 0, call: 0, raise: 100 },
+  'KTs': { fold: 0, call: 0, raise: 100 },
+  'K9s': { fold: 60, call: 0, raise: 40 },
+  'KQo': { fold: 10, call: 0, raise: 90 },
+  'KJo': { fold: 50, call: 0, raise: 50 },
+  'QJs': { fold: 0, call: 0, raise: 100 },
+  'QTs': { fold: 30, call: 0, raise: 70 },
+  'JTs': { fold: 30, call: 0, raise: 70 },
+  'T9s': { fold: 60, call: 0, raise: 40 },
+  '98s': { fold: 80, call: 0, raise: 20 },
+  '87s': { fold: 90, call: 0, raise: 10 },
+};
+
+export const CO_RFI = {
+  'AA': { fold: 0, call: 0, raise: 100 },
+  'KK': { fold: 0, call: 0, raise: 100 },
+  'QQ': { fold: 0, call: 0, raise: 100 },
+  'JJ': { fold: 0, call: 0, raise: 100 },
+  'TT': { fold: 0, call: 0, raise: 100 },
+  '99': { fold: 0, call: 0, raise: 100 },
+  '88': { fold: 0, call: 0, raise: 100 },
+  '77': { fold: 0, call: 0, raise: 100 },
+  '66': { fold: 0, call: 0, raise: 100 },
+  '55': { fold: 20, call: 0, raise: 80 },
+  '44': { fold: 40, call: 0, raise: 60 },
+  '33': { fold: 60, call: 0, raise: 40 },
+  '22': { fold: 70, call: 0, raise: 30 },
+  'AKs': { fold: 0, call: 0, raise: 100 },
+  'AQs': { fold: 0, call: 0, raise: 100 },
+  'AJs': { fold: 0, call: 0, raise: 100 },
+  'ATs': { fold: 0, call: 0, raise: 100 },
+  'A9s': { fold: 0, call: 0, raise: 100 },
+  'A8s': { fold: 0, call: 0, raise: 100 },
+  'A7s': { fold: 20, call: 0, raise: 80 },
+  'A6s': { fold: 30, call: 0, raise: 70 },
+  'A5s': { fold: 0, call: 0, raise: 100 },
+  'A4s': { fold: 10, call: 0, raise: 90 },
+  'A3s': { fold: 30, call: 0, raise: 70 },
+  'A2s': { fold: 40, call: 0, raise: 60 },
+  'AKo': { fold: 0, call: 0, raise: 100 },
+  'AQo': { fold: 0, call: 0, raise: 100 },
+  'AJo': { fold: 0, call: 0, raise: 100 },
+  'ATo': { fold: 0, call: 0, raise: 100 },
+  'A9o': { fold: 50, call: 0, raise: 50 },
+  'A8o': { fold: 70, call: 0, raise: 30 },
+  'KQs': { fold: 0, call: 0, raise: 100 },
+  'KJs': { fold: 0, call: 0, raise: 100 },
+  'KTs': { fold: 0, call: 0, raise: 100 },
+  'K9s': { fold: 20, call: 0, raise: 80 },
+  'K8s': { fold: 50, call: 0, raise: 50 },
+  'K7s': { fold: 70, call: 0, raise: 30 },
+  'KQo': { fold: 0, call: 0, raise: 100 },
+  'KJo': { fold: 20, call: 0, raise: 80 },
+  'KTo': { fold: 50, call: 0, raise: 50 },
+  'QJs': { fold: 0, call: 0, raise: 100 },
+  'QTs': { fold: 0, call: 0, raise: 100 },
+  'Q9s': { fold: 40, call: 0, raise: 60 },
+  'QJo': { fold: 30, call: 0, raise: 70 },
+  'JTs': { fold: 0, call: 0, raise: 100 },
+  'J9s': { fold: 40, call: 0, raise: 60 },
+  'T9s': { fold: 20, call: 0, raise: 80 },
+  '98s': { fold: 40, call: 0, raise: 60 },
+  '87s': { fold: 50, call: 0, raise: 50 },
+  '76s': { fold: 60, call: 0, raise: 40 },
+};
+
+export const BTN_RFI = {
+  'AA': { fold: 0, call: 0, raise: 100 },
+  'KK': { fold: 0, call: 0, raise: 100 },
+  'QQ': { fold: 0, call: 0, raise: 100 },
+  'JJ': { fold: 0, call: 0, raise: 100 },
+  'TT': { fold: 0, call: 0, raise: 100 },
+  '99': { fold: 0, call: 0, raise: 100 },
+  '88': { fold: 0, call: 0, raise: 100 },
+  '77': { fold: 0, call: 0, raise: 100 },
+  '66': { fold: 0, call: 0, raise: 100 },
+  '55': { fold: 0, call: 0, raise: 100 },
+  '44': { fold: 0, call: 0, raise: 100 },
+  '33': { fold: 20, call: 0, raise: 80 },
+  '22': { fold: 30, call: 0, raise: 70 },
+  'AKs': { fold: 0, call: 0, raise: 100 },
+  'AQs': { fold: 0, call: 0, raise: 100 },
+  'AJs': { fold: 0, call: 0, raise: 100 },
+  'ATs': { fold: 0, call: 0, raise: 100 },
+  'A9s': { fold: 0, call: 0, raise: 100 },
+  'A8s': { fold: 0, call: 0, raise: 100 },
+  'A7s': { fold: 0, call: 0, raise: 100 },
+  'A6s': { fold: 0, call: 0, raise: 100 },
+  'A5s': { fold: 0, call: 0, raise: 100 },
+  'A4s': { fold: 0, call: 0, raise: 100 },
+  'A3s': { fold: 0, call: 0, raise: 100 },
+  'A2s': { fold: 0, call: 0, raise: 100 },
+  'AKo': { fold: 0, call: 0, raise: 100 },
+  'AQo': { fold: 0, call: 0, raise: 100 },
+  'AJo': { fold: 0, call: 0, raise: 100 },
+  'ATo': { fold: 0, call: 0, raise: 100 },
+  'A9o': { fold: 0, call: 0, raise: 100 },
+  'A8o': { fold: 20, call: 0, raise: 80 },
+  'A7o': { fold: 30, call: 0, raise: 70 },
+  'A6o': { fold: 40, call: 0, raise: 60 },
+  'A5o': { fold: 30, call: 0, raise: 70 },
+  'A4o': { fold: 40, call: 0, raise: 60 },
+  'A3o': { fold: 50, call: 0, raise: 50 },
+  'A2o': { fold: 60, call: 0, raise: 40 },
+  'KQs': { fold: 0, call: 0, raise: 100 },
+  'KJs': { fold: 0, call: 0, raise: 100 },
+  'KTs': { fold: 0, call: 0, raise: 100 },
+  'K9s': { fold: 0, call: 0, raise: 100 },
+  'K8s': { fold: 0, call: 0, raise: 100 },
+  'K7s': { fold: 10, call: 0, raise: 90 },
+  'K6s': { fold: 20, call: 0, raise: 80 },
+  'K5s': { fold: 30, call: 0, raise: 70 },
+  'K4s': { fold: 40, call: 0, raise: 60 },
+  'K3s': { fold: 50, call: 0, raise: 50 },
+  'K2s': { fold: 60, call: 0, raise: 40 },
+  'KQo': { fold: 0, call: 0, raise: 100 },
+  'KJo': { fold: 0, call: 0, raise: 100 },
+  'KTo': { fold: 0, call: 0, raise: 100 },
+  'K9o': { fold: 30, call: 0, raise: 70 },
+  'K8o': { fold: 50, call: 0, raise: 50 },
+  'K7o': { fold: 70, call: 0, raise: 30 },
+  'QJs': { fold: 0, call: 0, raise: 100 },
+  'QTs': { fold: 0, call: 0, raise: 100 },
+  'Q9s': { fold: 0, call: 0, raise: 100 },
+  'Q8s': { fold: 20, call: 0, raise: 80 },
+  'Q7s': { fold: 40, call: 0, raise: 60 },
+  'Q6s': { fold: 50, call: 0, raise: 50 },
+  'Q5s': { fold: 60, call: 0, raise: 40 },
+  'QJo': { fold: 0, call: 0, raise: 100 },
+  'QTo': { fold: 10, call: 0, raise: 90 },
+  'Q9o': { fold: 50, call: 0, raise: 50 },
+  'JTs': { fold: 0, call: 0, raise: 100 },
+  'J9s': { fold: 0, call: 0, raise: 100 },
+  'J8s': { fold: 20, call: 0, raise: 80 },
+  'J7s': { fold: 50, call: 0, raise: 50 },
+  'JTo': { fold: 10, call: 0, raise: 90 },
+  'J9o': { fold: 60, call: 0, raise: 40 },
+  'T9s': { fold: 0, call: 0, raise: 100 },
+  'T8s': { fold: 10, call: 0, raise: 90 },
+  'T7s': { fold: 40, call: 0, raise: 60 },
+  'T9o': { fold: 40, call: 0, raise: 60 },
+  '98s': { fold: 0, call: 0, raise: 100 },
+  '97s': { fold: 20, call: 0, raise: 80 },
+  '98o': { fold: 60, call: 0, raise: 40 },
+  '87s': { fold: 0, call: 0, raise: 100 },
+  '86s': { fold: 30, call: 0, raise: 70 },
+  '76s': { fold: 10, call: 0, raise: 90 },
+  '75s': { fold: 40, call: 0, raise: 60 },
+  '65s': { fold: 20, call: 0, raise: 80 },
+  '54s': { fold: 30, call: 0, raise: 70 },
+};
+
+export const SB_RFI = {
+  'AA': { fold: 0, call: 0, raise: 100 },
+  'KK': { fold: 0, call: 0, raise: 100 },
+  'QQ': { fold: 0, call: 0, raise: 100 },
+  'JJ': { fold: 0, call: 0, raise: 100 },
+  'TT': { fold: 0, call: 0, raise: 100 },
+  '99': { fold: 0, call: 0, raise: 100 },
+  '88': { fold: 0, call: 0, raise: 100 },
+  '77': { fold: 0, call: 0, raise: 100 },
+  '66': { fold: 0, call: 0, raise: 100 },
+  '55': { fold: 10, call: 0, raise: 90 },
+  '44': { fold: 20, call: 0, raise: 80 },
+  '33': { fold: 30, call: 0, raise: 70 },
+  '22': { fold: 40, call: 0, raise: 60 },
+  'AKs': { fold: 0, call: 0, raise: 100 },
+  'AQs': { fold: 0, call: 0, raise: 100 },
+  'AJs': { fold: 0, call: 0, raise: 100 },
+  'ATs': { fold: 0, call: 0, raise: 100 },
+  'A9s': { fold: 0, call: 0, raise: 100 },
+  'A8s': { fold: 0, call: 0, raise: 100 },
+  'A7s': { fold: 0, call: 0, raise: 100 },
+  'A6s': { fold: 0, call: 0, raise: 100 },
+  'A5s': { fold: 0, call: 0, raise: 100 },
+  'A4s': { fold: 0, call: 0, raise: 100 },
+  'A3s': { fold: 0, call: 0, raise: 100 },
+  'A2s': { fold: 0, call: 0, raise: 100 },
+  'AKo': { fold: 0, call: 0, raise: 100 },
+  'AQo': { fold: 0, call: 0, raise: 100 },
+  'AJo': { fold: 0, call: 0, raise: 100 },
+  'ATo': { fold: 0, call: 0, raise: 100 },
+  'A9o': { fold: 0, call: 0, raise: 100 },
+  'A8o': { fold: 10, call: 0, raise: 90 },
+  'A7o': { fold: 20, call: 0, raise: 80 },
+  'A6o': { fold: 30, call: 0, raise: 70 },
+  'A5o': { fold: 20, call: 0, raise: 80 },
+  'A4o': { fold: 30, call: 0, raise: 70 },
+  'A3o': { fold: 40, call: 0, raise: 60 },
+  'A2o': { fold: 50, call: 0, raise: 50 },
+  'KQs': { fold: 0, call: 0, raise: 100 },
+  'KJs': { fold: 0, call: 0, raise: 100 },
+  'KTs': { fold: 0, call: 0, raise: 100 },
+  'K9s': { fold: 0, call: 0, raise: 100 },
+  'K8s': { fold: 10, call: 0, raise: 90 },
+  'K7s': { fold: 20, call: 0, raise: 80 },
+  'K6s': { fold: 30, call: 0, raise: 70 },
+  'K5s': { fold: 40, call: 0, raise: 60 },
+  'K4s': { fold: 50, call: 0, raise: 50 },
+  'K3s': { fold: 60, call: 0, raise: 40 },
+  'K2s': { fold: 70, call: 0, raise: 30 },
+  'KQo': { fold: 0, call: 0, raise: 100 },
+  'KJo': { fold: 0, call: 0, raise: 100 },
+  'KTo': { fold: 10, call: 0, raise: 90 },
+  'K9o': { fold: 40, call: 0, raise: 60 },
+  'K8o': { fold: 60, call: 0, raise: 40 },
+  'QJs': { fold: 0, call: 0, raise: 100 },
+  'QTs': { fold: 0, call: 0, raise: 100 },
+  'Q9s': { fold: 10, call: 0, raise: 90 },
+  'Q8s': { fold: 30, call: 0, raise: 70 },
+  'Q7s': { fold: 50, call: 0, raise: 50 },
+  'Q6s': { fold: 60, call: 0, raise: 40 },
+  'Q5s': { fold: 50, call: 0, raise: 50 },
+  'QJo': { fold: 10, call: 0, raise: 90 },
+  'QTo': { fold: 30, call: 0, raise: 70 },
+  'Q9o': { fold: 60, call: 0, raise: 40 },
+  'JTs': { fold: 0, call: 0, raise: 100 },
+  'J9s': { fold: 10, call: 0, raise: 90 },
+  'J8s': { fold: 30, call: 0, raise: 70 },
+  'J7s': { fold: 60, call: 0, raise: 40 },
+  'JTo': { fold: 20, call: 0, raise: 80 },
+  'J9o': { fold: 60, call: 0, raise: 40 },
+  'T9s': { fold: 0, call: 0, raise: 100 },
+  'T8s': { fold: 20, call: 0, raise: 80 },
+  'T7s': { fold: 50, call: 0, raise: 50 },
+  'T9o': { fold: 50, call: 0, raise: 50 },
+  '98s': { fold: 10, call: 0, raise: 90 },
+  '97s': { fold: 30, call: 0, raise: 70 },
+  '87s': { fold: 20, call: 0, raise: 80 },
+  '86s': { fold: 40, call: 0, raise: 60 },
+  '76s': { fold: 30, call: 0, raise: 70 },
+  '75s': { fold: 50, call: 0, raise: 50 },
+  '65s': { fold: 40, call: 0, raise: 60 },
+  '54s': { fold: 50, call: 0, raise: 50 },
+};
+
+// ============================================
+// BB vs SB Open レンジ（最重要）
+// ============================================
+
+export const BB_VS_SB_OPEN = {
+  // ポケットペア
+  'AA': { fold: 0, call: 0, raise: 100 },
+  'KK': { fold: 0, call: 0, raise: 100 },
+  'QQ': { fold: 0, call: 0, raise: 100 },
+  'JJ': { fold: 0, call: 15, raise: 85 },
+  'TT': { fold: 0, call: 35, raise: 65 },
+  '99': { fold: 0, call: 55, raise: 45 },
+  '88': { fold: 0, call: 65, raise: 35 },
+  '77': { fold: 0, call: 75, raise: 25 },
+  '66': { fold: 5, call: 80, raise: 15 },
+  '55': { fold: 10, call: 80, raise: 10 },
+  '44': { fold: 20, call: 70, raise: 10 },
+  '33': { fold: 25, call: 65, raise: 10 },
+  '22': { fold: 30, call: 60, raise: 10 },
+
+  // Ax スーテッド
+  'AKs': { fold: 0, call: 0, raise: 100 },
+  'AQs': { fold: 0, call: 15, raise: 85 },
+  'AJs': { fold: 0, call: 35, raise: 65 },
+  'ATs': { fold: 0, call: 50, raise: 50 },
+  'A9s': { fold: 0, call: 65, raise: 35 },
+  'A8s': { fold: 0, call: 70, raise: 30 },
+  'A7s': { fold: 0, call: 70, raise: 30 },
+  'A6s': { fold: 5, call: 70, raise: 25 },
+  'A5s': { fold: 0, call: 45, raise: 55 },
+  'A4s': { fold: 0, call: 55, raise: 45 },
+  'A3s': { fold: 5, call: 65, raise: 30 },
+  'A2s': { fold: 10, call: 65, raise: 25 },
+
+  // Ax オフスート
+  'AKo': { fold: 0, call: 0, raise: 100 },
+  'AQo': { fold: 0, call: 35, raise: 65 },
+  'AJo': { fold: 0, call: 55, raise: 45 },
+  'ATo': { fold: 5, call: 65, raise: 30 },
+  'A9o': { fold: 15, call: 70, raise: 15 },
+  'A8o': { fold: 25, call: 65, raise: 10 },
+  'A7o': { fold: 35, call: 60, raise: 5 },
+  'A6o': { fold: 45, call: 50, raise: 5 },
+  'A5o': { fold: 40, call: 55, raise: 5 },
+  'A4o': { fold: 50, call: 45, raise: 5 },
+  'A3o': { fold: 55, call: 40, raise: 5 },
+  'A2o': { fold: 60, call: 35, raise: 5 },
+
+  // Kx スーテッド
+  'KQs': { fold: 0, call: 30, raise: 70 },
+  'KJs': { fold: 0, call: 50, raise: 50 },
+  'KTs': { fold: 0, call: 60, raise: 40 },
+  'K9s': { fold: 5, call: 70, raise: 25 },
+  'K8s': { fold: 15, call: 70, raise: 15 },
+  'K7s': { fold: 25, call: 65, raise: 10 },
+  'K6s': { fold: 30, call: 60, raise: 10 },
+  'K5s': { fold: 35, call: 55, raise: 10 },
+  'K4s': { fold: 45, call: 50, raise: 5 },
+  'K3s': { fold: 55, call: 40, raise: 5 },
+  'K2s': { fold: 65, call: 30, raise: 5 },
+
+  // Kx オフスート
+  'KQo': { fold: 0, call: 50, raise: 50 },
+  'KJo': { fold: 10, call: 65, raise: 25 },
+  'KTo': { fold: 20, call: 65, raise: 15 },
+  'K9o': { fold: 40, call: 55, raise: 5 },
+  'K8o': { fold: 60, call: 35, raise: 5 },
+  'K7o': { fold: 75, call: 20, raise: 5 },
+  'K6o': { fold: 85, call: 10, raise: 5 },
+  'K5o': { fold: 90, call: 5, raise: 5 },
+  'K4o': { fold: 95, call: 0, raise: 5 },
+  'K3o': { fold: 100, call: 0, raise: 0 },
+  'K2o': { fold: 100, call: 0, raise: 0 },
+
+  // Qx スーテッド
+  'QJs': { fold: 0, call: 55, raise: 45 },
+  'QTs': { fold: 0, call: 65, raise: 35 },
+  'Q9s': { fold: 10, call: 70, raise: 20 },
+  'Q8s': { fold: 25, call: 65, raise: 10 },
+  'Q7s': { fold: 40, call: 55, raise: 5 },
+  'Q6s': { fold: 50, call: 45, raise: 5 },
+  'Q5s': { fold: 60, call: 35, raise: 5 },
+  'Q4s': { fold: 70, call: 25, raise: 5 },
+  'Q3s': { fold: 80, call: 15, raise: 5 },
+  'Q2s': { fold: 90, call: 5, raise: 5 },
+
+  // Qx オフスート
+  'QJo': { fold: 15, call: 70, raise: 15 },
+  'QTo': { fold: 35, call: 60, raise: 5 },
+  'Q9o': { fold: 55, call: 40, raise: 5 },
+  'Q8o': { fold: 75, call: 20, raise: 5 },
+  'Q7o': { fold: 90, call: 5, raise: 5 },
+  'Q6o': { fold: 100, call: 0, raise: 0 },
+  'Q5o': { fold: 100, call: 0, raise: 0 },
+  'Q4o': { fold: 100, call: 0, raise: 0 },
+  'Q3o': { fold: 100, call: 0, raise: 0 },
+  'Q2o': { fold: 100, call: 0, raise: 0 },
+
+  // Jx スーテッド
+  'JTs': { fold: 0, call: 60, raise: 40 },
+  'J9s': { fold: 10, call: 70, raise: 20 },
+  'J8s': { fold: 25, call: 65, raise: 10 },
+  'J7s': { fold: 45, call: 50, raise: 5 },
+  'J6s': { fold: 65, call: 30, raise: 5 },
+  'J5s': { fold: 80, call: 15, raise: 5 },
+  'J4s': { fold: 90, call: 5, raise: 5 },
+  'J3s': { fold: 100, call: 0, raise: 0 },
+  'J2s': { fold: 100, call: 0, raise: 0 },
+
+  // Jx オフスート
+  'JTo': { fold: 25, call: 65, raise: 10 },
+  'J9o': { fold: 50, call: 45, raise: 5 },
+  'J8o': { fold: 75, call: 20, raise: 5 },
+  'J7o': { fold: 100, call: 0, raise: 0 },
+  'J6o': { fold: 100, call: 0, raise: 0 },
+  'J5o': { fold: 100, call: 0, raise: 0 },
+  'J4o': { fold: 100, call: 0, raise: 0 },
+  'J3o': { fold: 100, call: 0, raise: 0 },
+  'J2o': { fold: 100, call: 0, raise: 0 },
+
+  // Tx スーテッド
+  'T9s': { fold: 0, call: 60, raise: 40 },
+  'T8s': { fold: 10, call: 65, raise: 25 },
+  'T7s': { fold: 25, call: 60, raise: 15 },
+  'T6s': { fold: 40, call: 50, raise: 10 },
+  'T5s': { fold: 55, call: 40, raise: 5 },
+  'T4s': { fold: 70, call: 25, raise: 5 },
+  'T3s': { fold: 80, call: 15, raise: 5 },
+  'T2s': { fold: 90, call: 5, raise: 5 },
+
+  // Tx オフスート
+  'T9o': { fold: 25, call: 60, raise: 15 },
+  'T8o': { fold: 50, call: 45, raise: 5 },
+  'T7o': { fold: 75, call: 20, raise: 5 },
+  'T6o': { fold: 90, call: 5, raise: 5 },
+  'T5o': { fold: 100, call: 0, raise: 0 },
+  'T4o': { fold: 100, call: 0, raise: 0 },
+  'T3o': { fold: 100, call: 0, raise: 0 },
+  'T2o': { fold: 100, call: 0, raise: 0 },
+
+  // コネクター系
+  '98s': { fold: 5, call: 65, raise: 30 },
+  '97s': { fold: 20, call: 60, raise: 20 },
+  '96s': { fold: 35, call: 55, raise: 10 },
+  '95s': { fold: 55, call: 40, raise: 5 },
+  '94s': { fold: 75, call: 20, raise: 5 },
+  '93s': { fold: 85, call: 10, raise: 5 },
+  '92s': { fold: 95, call: 0, raise: 5 },
+  '87s': { fold: 5, call: 65, raise: 30 },
+  '86s': { fold: 20, call: 60, raise: 20 },
+  '85s': { fold: 40, call: 50, raise: 10 },
+  '84s': { fold: 60, call: 35, raise: 5 },
+  '83s': { fold: 80, call: 15, raise: 5 },
+  '82s': { fold: 95, call: 0, raise: 5 },
+  '76s': { fold: 10, call: 60, raise: 30 },
+  '75s': { fold: 25, call: 55, raise: 20 },
+  '74s': { fold: 50, call: 40, raise: 10 },
+  '73s': { fold: 75, call: 20, raise: 5 },
+  '72s': { fold: 95, call: 0, raise: 5 },
+  '65s': { fold: 15, call: 55, raise: 30 },
+  '64s': { fold: 35, call: 50, raise: 15 },
+  '63s': { fold: 55, call: 35, raise: 10 },
+  '62s': { fold: 80, call: 15, raise: 5 },
+  '54s': { fold: 20, call: 50, raise: 30 },
+  '53s': { fold: 45, call: 40, raise: 15 },
+  '52s': { fold: 70, call: 25, raise: 5 },
+  '43s': { fold: 50, call: 35, raise: 15 },
+  '42s': { fold: 80, call: 15, raise: 5 },
+  '32s': { fold: 70, call: 25, raise: 5 },
+
+  // コネクター オフスート
+  '98o': { fold: 40, call: 50, raise: 10 },
+  '97o': { fold: 65, call: 30, raise: 5 },
+  '96o': { fold: 85, call: 10, raise: 5 },
+  '95o': { fold: 100, call: 0, raise: 0 },
+  '94o': { fold: 100, call: 0, raise: 0 },
+  '93o': { fold: 100, call: 0, raise: 0 },
+  '92o': { fold: 100, call: 0, raise: 0 },
+  '87o': { fold: 45, call: 45, raise: 10 },
+  '86o': { fold: 70, call: 25, raise: 5 },
+  '85o': { fold: 90, call: 5, raise: 5 },
+  '84o': { fold: 100, call: 0, raise: 0 },
+  '83o': { fold: 100, call: 0, raise: 0 },
+  '82o': { fold: 100, call: 0, raise: 0 },
+  '76o': { fold: 55, call: 35, raise: 10 },
+  '75o': { fold: 80, call: 15, raise: 5 },
+  '74o': { fold: 100, call: 0, raise: 0 },
+  '73o': { fold: 100, call: 0, raise: 0 },
+  '72o': { fold: 100, call: 0, raise: 0 },
+  '65o': { fold: 65, call: 25, raise: 10 },
+  '64o': { fold: 90, call: 5, raise: 5 },
+  '63o': { fold: 100, call: 0, raise: 0 },
+  '62o': { fold: 100, call: 0, raise: 0 },
+  '54o': { fold: 75, call: 15, raise: 10 },
+  '53o': { fold: 100, call: 0, raise: 0 },
+  '52o': { fold: 100, call: 0, raise: 0 },
+  '43o': { fold: 100, call: 0, raise: 0 },
+  '42o': { fold: 100, call: 0, raise: 0 },
+  '32o': { fold: 100, call: 0, raise: 0 },
+};
+
+// ============================================
+// RFIレンジマップ
+// ============================================
+export const RFI_RANGES = {
+  UTG: UTG_RFI,
+  HJ: HJ_RFI,
+  CO: CO_RFI,
+  BTN: BTN_RFI,
+  SB: SB_RFI
+};
+
+// ============================================
+// VS OPENレンジマップ（現時点ではBB vs SBのみ完全実装）
+// ============================================
+export const VS_OPEN_RANGES = {
+  BB_vs_SB: BB_VS_SB_OPEN
+};
+
+// ============================================
+// ヘルパー関数
+// ============================================
+
+export function getRFIRange(position) {
+  return RFI_RANGES[position] || UTG_RFI;
+}
+
+export function getVsOpenRange(heroPosition, openerPosition) {
+  const key = `${heroPosition}_vs_${openerPosition}`;
+  return VS_OPEN_RANGES[key] || {};
+}
+
+export function getHandAction(range, hand) {
+  return range[hand] || DEFAULT_ACTION;
+}
+
+export function getRange(situation) {
+  if (situation.type === 'RFI') {
+    return getRFIRange(situation.heroPosition);
+  }
+  if (situation.type === 'VS_OPEN') {
+    return getVsOpenRange(situation.heroPosition, situation.openerPosition);
+  }
+  return {};
+}
+
+export function rangeToMatrix(range) {
+  const ranks = ['A', 'K', 'Q', 'J', 'T', '9', '8', '7', '6', '5', '4', '3', '2'];
+  const matrix = [];
+
+  for (let row = 0; row < 13; row++) {
+    const matrixRow = [];
+    for (let col = 0; col < 13; col++) {
+      const r1 = ranks[row];
+      const r2 = ranks[col];
+      let hand;
+      if (row === col) {
+        hand = r1 + r2;
+      } else if (row < col) {
+        hand = r1 + r2 + 's';
+      } else {
+        hand = r2 + r1 + 'o';
+      }
+
+      const action = range[hand] || DEFAULT_ACTION;
+      let cellValue = 0;
+      if (action.raise >= action.call && action.raise >= action.fold && action.raise > 0) {
+        cellValue = 2;
+      } else if (action.call >= action.fold && action.call > 0) {
+        cellValue = 1;
+      }
+      matrixRow.push(cellValue);
+    }
+    matrix.push(matrixRow);
+  }
+
+  return matrix;
+}

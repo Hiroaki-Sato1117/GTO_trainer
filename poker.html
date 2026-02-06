@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>GTO Poker Trainer v3</title>
+    <title>GTO Poker Trainer v6</title>
     <script src="https://unpkg.com/react@18/umd/react.development.js"></script>
     <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
     <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
@@ -167,7 +167,7 @@
             box-shadow: 0 0 0 3px #8b6914, 0 0 30px rgba(0,0,0,0.5), inset 0 0 50px rgba(0,0,0,0.3);
         }
 
-        /* プレイヤー配置 - 相対位置（自分を基準に右回り） */
+        /* プレイヤー配置 - 固定位置（Player 1-5） */
         .player-seat {
             position: absolute;
             display: flex;
@@ -177,16 +177,16 @@
             transition: all 0.3s ease;
         }
 
-        /* 相対位置1: 左下 (自分の左隣) */
-        .seat-rel-1 { bottom: 15px; left: -35px; }
-        /* 相対位置2: 左上 */
-        .seat-rel-2 { top: 15px; left: -35px; }
-        /* 相対位置3: 上（正面） */
-        .seat-rel-3 { top: -55px; left: 50%; transform: translateX(-50%); }
-        /* 相対位置4: 右上 */
-        .seat-rel-4 { top: 15px; right: -35px; }
-        /* 相対位置5: 右下 (自分の右隣) */
-        .seat-rel-5 { bottom: 15px; right: -35px; }
+        /* Player 1: 左下 (あなたの左隣) */
+        .seat-player-1 { bottom: 15px; left: -35px; }
+        /* Player 2: 左上 */
+        .seat-player-2 { top: 15px; left: -35px; }
+        /* Player 3: 上（正面） */
+        .seat-player-3 { top: -55px; left: 50%; transform: translateX(-50%); }
+        /* Player 4: 右上 */
+        .seat-player-4 { top: 15px; right: -35px; }
+        /* Player 5: 右下 (あなたの右隣) */
+        .seat-player-5 { bottom: 15px; right: -35px; }
 
         .player-seat.active .player-box {
             box-shadow: 0 0 15px #fbbf24, 0 0 30px rgba(251,191,36,0.4);
@@ -834,7 +834,6 @@
                 <div className="left-panel">
                     <div className="panel-header">
                         <div className="panel-title">
-                            <span>📊</span>
                             <span>レンジ表</span>
                         </div>
                         <button className="close-btn" onClick={onClose}>−</button>
@@ -897,7 +896,6 @@
                     <div className="right-panel">
                         <div className="panel-header">
                             <div className="panel-title">
-                                <span>🎯</span>
                                 <span>GTO推奨</span>
                             </div>
                             <button className="close-btn" onClick={onClose}>−</button>
@@ -924,7 +922,6 @@
                 <div className="right-panel">
                     <div className="panel-header">
                         <div className="panel-title">
-                            <span>🎯</span>
                             <span>GTO推奨</span>
                         </div>
                         <button className="close-btn" onClick={onClose}>−</button>
@@ -957,7 +954,7 @@
                     {situation_analysis.length > 0 && (
                         <div className="gto-section">
                             <div className="gto-section-title">
-                                <span>📊</span> 状況分析
+                                状況分析
                             </div>
                             {situation_analysis.map((item, i) => (
                                 <div key={i} className="gto-item">
@@ -971,7 +968,7 @@
                     {reasoning.length > 0 && (
                         <div className="gto-section">
                             <div className="gto-section-title">
-                                <span>📝</span> 推奨理由
+                                推奨理由
                             </div>
                             {reasoning.map((item, i) => (
                                 <div key={i} className="gto-item">
@@ -985,7 +982,7 @@
                     {raise_percentage > 0 && raise_size_description && (
                         <div className="gto-section">
                             <div className="gto-section-title">
-                                <span>💰</span> レイズサイズ
+                                レイズサイズ
                             </div>
                             <div className="text-yellow-300 text-sm font-bold mb-1">
                                 {raise_size_description}
@@ -1003,15 +1000,24 @@
 
         // フィードバックモーダル - CSSトランジション対応
         function FeedbackModal({ feedback, onNextHand }) {
-            const { result, userAction, gtoRecommendation, message } = feedback || {};
+            // フェードアウト中も前回の内容を保持するためのref
+            const lastFeedbackRef = useRef(null);
+
+            // feedbackがある時だけ更新（nullになってもrefは前回の値を保持）
+            if (feedback) {
+                lastFeedbackRef.current = feedback;
+            }
+
+            const displayFeedback = feedback || lastFeedbackRef.current;
+            const { result, userAction, gtoRecommendation, message } = displayFeedback || {};
 
             const resultConfig = {
-                CORRECT: { icon: '✅', title: 'CORRECT', class: 'correct' },
-                ERROR: { icon: '❌', title: 'ERROR', class: 'error' },
-                ACCEPTABLE: { icon: '⚠️', title: 'ACCEPTABLE', class: 'acceptable' }
+                CORRECT: { icon: '', title: 'CORRECT', class: 'correct' },
+                ERROR: { icon: '', title: 'ERROR', class: 'error' },
+                ACCEPTABLE: { icon: '', title: 'ACCEPTABLE', class: 'acceptable' }
             };
 
-            const config = resultConfig[result] || resultConfig.ERROR;
+            const config = resultConfig[result] || resultConfig.CORRECT;
             const isOpen = !!feedback;
 
             return (
@@ -1058,6 +1064,7 @@
             // AIアクションを順次処理
             const processAIActions = async () => {
                 setIsProcessingAI(true);
+                let heroAutoWin = false;
                 while (true) {
                     await new Promise(resolve => setTimeout(resolve, 400));
                     try {
@@ -1065,6 +1072,12 @@
                         const data = await res.json();
                         if (!data.action) break;
                         setGame(data.action.game);
+
+                        // 自分以外全員フォールドで自動勝利
+                        if (data.heroAutoWin) {
+                            heroAutoWin = true;
+                            break;
+                        }
                         if (!data.hasMore) break;
                     } catch (err) {
                         console.error('AI action error:', err);
@@ -1072,12 +1085,44 @@
                     }
                 }
                 setIsProcessingAI(false);
+
+                // 自動勝利の場合、少し待ってから次のハンドへ
+                if (heroAutoWin) {
+                    await new Promise(resolve => setTimeout(resolve, 800));
+                    await proceedToNextHand();
+                    return;
+                }
+
                 try {
                     const gtoRes = await fetch(`${API_BASE}/game/gto-recommendation`);
                     const gtoData = await gtoRes.json();
                     setGtoRecommendation(gtoData.recommendation);
                 } catch (err) {
                     console.error('GTO fetch error:', err);
+                }
+            };
+
+            // 次のハンドへ進む（内部用）
+            const proceedToNextHand = async () => {
+                setGtoRecommendation(null);
+                setFeedback(null);
+                try {
+                    const res = await fetch(`${API_BASE}/game/next-hand`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' }
+                    });
+                    const data = await res.json();
+                    setGame(data.game);
+                    setBetAmount(data.game.blinds.bb * 3);
+                    if (data.pendingActionsCount > 0) {
+                        await processAIActions();
+                    } else {
+                        const gtoRes = await fetch(`${API_BASE}/game/gto-recommendation`);
+                        const gtoData = await gtoRes.json();
+                        setGtoRecommendation(gtoData.recommendation);
+                    }
+                } catch (err) {
+                    console.error(err);
                 }
             };
 
@@ -1219,13 +1264,10 @@
             const minRaise = game ? Math.max((game.currentBet || 0) * 2, (game.blinds?.bb || 100) * 2) : 200;
             const pot = game?.pot || 0;
 
-            // 相対位置を計算（自分の席を基準に右回りで配置）
-            const getRelativeSeatClass = (playerSeatIndex) => {
-                if (!game) return 'seat-rel-3';
-                const heroSeatIndex = game.heroSeatIndex;
-                // 自分からの相対位置を計算（1〜5、0は自分なのでスキップ）
-                const relativeIndex = (playerSeatIndex - heroSeatIndex + 6) % 6;
-                return `seat-rel-${relativeIndex}`;
+            // プレイヤーの固定席位置を取得（playerIndexに基づく）
+            const getSeatClass = (playerIndex) => {
+                // playerIndex 1-5 はそれぞれ固定位置
+                return `seat-player-${playerIndex}`;
             };
 
             return (
@@ -1233,7 +1275,7 @@
                     {/* ヘッダー */}
                     <header className="header">
                         <div className="header-left">
-                            <span className="text-xl">🃏</span>
+                            <span className="text-xl font-bold">♠</span>
                             <h1 className="text-white font-bold">GTO Poker Trainer</h1>
                             <span className="text-yellow-400 text-sm font-bold">
                                 Hand #{game?.handNumber || 1}
@@ -1247,13 +1289,13 @@
                                 className={`toggle-btn ${showRangePanel ? 'active' : 'inactive'}`}
                                 onClick={() => setShowRangePanel(!showRangePanel)}
                             >
-                                📊 レンジ
+                                レンジ
                             </button>
                             <button
                                 className={`toggle-btn ${showGTOPanel ? 'active' : 'inactive'}`}
                                 onClick={() => setShowGTOPanel(!showGTOPanel)}
                             >
-                                🎯 GTO
+                                GTO
                             </button>
                             <button
                                 onClick={startNewGame}
@@ -1305,7 +1347,7 @@
                                                 key={player.id}
                                                 player={player}
                                                 isActive={game.players.indexOf(player) === game.currentPlayerIndex}
-                                                seatClass={getRelativeSeatClass(player.seatIndex)}
+                                                seatClass={getSeatClass(player.playerIndex)}
                                             />
                                         ))}
                                     </div>
