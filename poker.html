@@ -907,6 +907,60 @@
                 );
             }
 
+            // 未実装シチュエーションの場合
+            if (recommendation.isUnimplemented) {
+                return (
+                    <div className="right-panel">
+                        <div className="panel-header">
+                            <div className="panel-title">
+                                <span>GTO推奨</span>
+                            </div>
+                            <button className="close-btn" onClick={onClose}>−</button>
+                        </div>
+
+                        {recommendation.hand_notation && (
+                            <div style={{textAlign: 'center', marginBottom: '12px'}}>
+                                <span className="text-yellow-400 font-bold text-lg">
+                                    {recommendation.hand_notation}
+                                </span>
+                            </div>
+                        )}
+
+                        <div style={{
+                            background: 'rgba(251, 191, 36, 0.2)',
+                            border: '1px solid rgba(251, 191, 36, 0.5)',
+                            borderRadius: '8px',
+                            padding: '16px',
+                            marginBottom: '16px'
+                        }}>
+                            <div style={{
+                                color: '#fbbf24',
+                                fontWeight: 'bold',
+                                fontSize: '14px',
+                                marginBottom: '8px',
+                                display: 'flex',
+                                alignItems: 'center',
+                                gap: '8px'
+                            }}>
+                                <span>&#x26A0;&#xFE0F;</span>
+                                <span>未実装のシチュエーション</span>
+                            </div>
+                            <div style={{color: '#fcd34d', fontSize: '13px', marginBottom: '8px'}}>
+                                {recommendation.message}
+                            </div>
+                            <div style={{color: '#d1d5db', fontSize: '11px'}}>
+                                {recommendation.description}
+                            </div>
+                        </div>
+
+                        <div style={{color: '#9ca3af', fontSize: '11px', textAlign: 'center'}}>
+                            このシチュエーションでは、<br/>
+                            ご自身の判断でプレイしてください。
+                        </div>
+                    </div>
+                );
+            }
+
             const {
                 fold_percentage = 0,
                 call_percentage = 0,
@@ -1029,9 +1083,10 @@
                             あなたの選択: {userAction || '-'}
                         </div>
                         <div className="feedback-details">
-                            GTO推奨: Fold {gtoRecommendation?.fold_percentage || 0}% /
-                            Call {gtoRecommendation?.call_percentage || 0}% /
-                            Raise {gtoRecommendation?.raise_percentage || 0}%
+                            {gtoRecommendation?.isUnimplemented
+                              ? `GTO推奨: ${gtoRecommendation.message}`
+                              : `GTO推奨: Fold ${gtoRecommendation?.fold_percentage || 0}% / Call ${gtoRecommendation?.call_percentage || 0}% / Raise ${gtoRecommendation?.raise_percentage || 0}%`
+                            }
                         </div>
                         <div className="feedback-message">{message || ''}</div>
                         <button className="feedback-btn" onClick={onNextHand}>
@@ -1254,6 +1309,23 @@
                 }
             };
 
+            // スペースキーで次のハンドへ
+            useEffect(() => {
+                const handleKeyDown = (e) => {
+                    if (e.code === 'Space' || e.key === ' ') {
+                        if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') {
+                            return;
+                        }
+                        if (game?.isHandComplete) {
+                            e.preventDefault();
+                            nextHand();
+                        }
+                    }
+                };
+                window.addEventListener('keydown', handleKeyDown);
+                return () => window.removeEventListener('keydown', handleKeyDown);
+            }, [game?.isHandComplete, nextHand]);
+
             useEffect(() => { startNewGame(); }, [startNewGame]);
 
             const hero = game?.players?.find(p => p.isHero);
@@ -1432,6 +1504,9 @@
                                                 >
                                                     次のハンドへ
                                                 </button>
+                                                <div style={{color: '#9ca3af', fontSize: '11px', marginTop: '8px'}}>
+                                                    スペースキーでも次のハンドへ進めます
+                                                </div>
                                             </div>
                                         ) : (
                                             <span>{currentPlayer?.name || 'AI'} のターン...</span>

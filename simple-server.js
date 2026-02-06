@@ -357,6 +357,14 @@ function getNextAIAction() {
   const playerIndex = action.playerIndex;
   applyActionToState(gameState, playerIndex, action.action, action.amount);
 
+  // アクション履歴に記録
+  gameState.actionHistory.push({
+    position: action.position,
+    action: action.action,
+    amount: action.amount,
+    description: `${action.position}: ${action.action}${action.amount ? ' ' + action.amount : ''}`
+  });
+
   // 次のプレイヤーへ
   gameState.currentPlayerIndex = getNextPlayerIndex(playerIndex, gameState.players);
 
@@ -410,9 +418,41 @@ function getGTORecommendation() {
 
   const handNotation = getHandNotation(hero.holeCards);
   const position = hero.position;
-  const hasRaise = gameState.currentBet > gameState.blinds.bb;
-  const openerPosition = gameState.firstRaiserPosition;
   const bb = gameState.blinds.bb;
+
+  // アクション履歴を分析（postとヒーロー自身を除く）
+  const historyActions = gameState.actionHistory.filter(a =>
+    a.action !== 'post' && a.position !== position
+  );
+  const raises = historyActions.filter(a => a.action === 'raise');
+  const calls = historyActions.filter(a => a.action === 'call');
+
+  // ====== 未実装シチュエーション検出 ======
+
+  // 1. 3bet以上の状況（vs 3bet, vs 4bet）
+  if (raises.length >= 2) {
+    return {
+      isUnimplemented: true,
+      unimplementedType: 'VS_3BET_OR_MORE',
+      message: '3bet/4bet への対応は未実装です',
+      description: '現在のバージョンでは、オープン vs 1人の状況のみ対応しています。',
+      hand_notation: handNotation
+    };
+  }
+
+  // 2. コールドコールあり（オープン後にコールが入った状況）
+  if (raises.length === 1 && calls.length >= 1) {
+    return {
+      isUnimplemented: true,
+      unimplementedType: 'COLD_CALL_EXISTS',
+      message: 'コールドコールありの状況は未実装です',
+      description: 'オープンに対してコールが入った後のアクションは、次のバージョンで対応予定です。',
+      hand_notation: handNotation
+    };
+  }
+
+  const hasRaise = gameState.currentBet > bb;
+  const openerPosition = gameState.firstRaiserPosition;
 
   let rangeData;
   let situation;
@@ -429,6 +469,17 @@ function getGTORecommendation() {
     rangeData = VS_OPEN_RANGES[vsOpenKey] || {};
     situation = 'VS_OPEN';
     situationDescription = `${openerPosition}のオープンに対する${position}のアクション`;
+
+    // レンジデータが空の場合（未実装パターン）
+    if (Object.keys(rangeData).length === 0) {
+      return {
+        isUnimplemented: true,
+        unimplementedType: 'MISSING_RANGE',
+        message: `${position} vs ${openerPosition} のレンジは未実装です`,
+        description: 'このポジションの組み合わせはまだデータがありません。',
+        hand_notation: handNotation
+      };
+    }
   }
 
   const actions = rangeData[handNotation] || DEFAULT_ACTION;
@@ -492,6 +543,7 @@ function getGTORecommendation() {
   }
 
   return {
+    isUnimplemented: false,
     fold_percentage: actions.fold,
     call_percentage: actions.call,
     raise_percentage: actions.raise,
@@ -590,6 +642,14 @@ const server = http.createServer((req, res) => {
 
       // ヒーローのアクションを実行
       executeAction(hero, action, amount);
+
+      // アクション履歴に記録
+      gameState.actionHistory.push({
+        position: hero.position,
+        action: action,
+        amount: amount || 0,
+        description: `${hero.position}: ${action}${amount ? ' ' + amount : ''}`
+      });
 
       // ハンド終了チェック（プリフロップ専用なので、アクション完了=ハンド終了）
       gameState.isHandComplete = true;
@@ -697,5 +757,5 @@ const server = http.createServer((req, res) => {
 });
 
 server.listen(3001, () => {
-  console.log('GTO Poker Server v7 running on http://localhost:3001');
+  console.log('GTO Poker Server v8 running on http://localhost:3001');
 });
