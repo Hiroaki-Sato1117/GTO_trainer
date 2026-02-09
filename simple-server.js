@@ -1,5 +1,11 @@
-// GTO Poker Trainer - サーバー v7 (Phase 1 リファクタリング - データ分離)
+// GTO Poker Trainer - サーバー v8
 import http from 'http';
+import fs from 'fs';
+import path from 'path';
+import { fileURLToPath } from 'url';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 import {
   RFI_RANGES,
   VS_OPEN_RANGES,
@@ -772,10 +778,24 @@ const server = http.createServer((req, res) => {
     return;
   }
 
+  // poker.html を配信（ルートおよび /poker.html）
+  if (url === '/' || url === '/poker.html') {
+    try {
+      const html = fs.readFileSync(path.join(__dirname, 'poker.html'), 'utf-8');
+      res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8' });
+      res.end(html);
+    } catch (err) {
+      res.writeHead(500);
+      res.end('Server error');
+    }
+    return;
+  }
+
   res.writeHead(404);
   res.end('Not found');
 });
 
-server.listen(3001, () => {
-  console.log('GTO Poker Server v8 running on http://localhost:3001');
+const PORT = process.env.PORT || 3001;
+server.listen(PORT, () => {
+  console.log(`GTO Poker Server v8 running on http://localhost:${PORT}`);
 });
